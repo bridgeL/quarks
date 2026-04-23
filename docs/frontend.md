@@ -4,11 +4,11 @@
 
 前端位于 `frontend/`，是一个基于 Vite + React + TypeScript 的单页应用（SPA）。当前主要实现三类页面能力：
 
-- 认证流程：登录、注册、游客模式进入
+- 认证流程：登录、游客模式进入
 - 个人信息页：查看用户名/昵称/账号类型/时间信息，并更新昵称与密码
 - 登录后首页：当前用户自己的 Test 数据列表与增删改操作
 
-整体风格依然轻量，以页面驱动为主，没有额外引入复杂组件库或状态管理框架。
+整体风格仍然偏轻量，以页面驱动为主，没有额外引入复杂组件库或状态管理框架。
 
 技术栈包括：
 
@@ -46,7 +46,6 @@ frontend/
    │  └─ index.tsx
    ├─ pages/
    │  ├─ LoginPage.tsx
-   │  ├─ RegisterPage.tsx
    │  ├─ AutoRegisterPage.tsx
    │  ├─ HomePage.tsx
    │  └─ ProfilePage.tsx
@@ -57,8 +56,8 @@ frontend/
 其中：
 
 - `vite-env.d.ts`：补充 `import.meta.env` 的 Vite 类型声明
-- `ProfilePage.tsx`：当前新增的重要页面，承载资料展示与修改逻辑
-- `components/` 仍然没有真正投入使用，页面逻辑主要集中在 `pages/`
+- `ProfilePage.tsx`：承载资料展示与修改逻辑
+- `components/` 仍未实际投入使用，页面逻辑主要集中在 `pages/`
 
 ## 启动入口
 
@@ -104,7 +103,7 @@ React 启动入口，负责：
 这意味着：
 
 - 开发环境继续通过 5173 运行前端
-- 生产/演示构建时，前端产物会直接输出到 `backend/dist/`
+- 构建产物会直接输出到 `backend/dist/`
 - 后端可以直接托管这些静态文件
 
 ## 路由结构
@@ -119,7 +118,6 @@ React 启动入口，负责：
 ### GuestRoute 下的页面
 
 - `/login` → 登录页
-- `/register` → 注册页
 - `/auto-register` → 游客模式页
 
 如果已经有 token，访问这些页面会被重定向到 `/`。
@@ -154,25 +152,9 @@ React 启动入口，负责：
 - 调用 `authApi.login`
 - 登录成功后写入认证上下文
 - 跳转到首页 `/`
-- 提供跳转到注册页和游客模式页的入口
+- 提供跳转到游客模式页的入口
 
-### `RegisterPage.tsx`
-
-负责普通用户注册。
-
-当前行为：
-
-- 用户输入的是：
-  - 昵称
-  - 密码
-- 用户不能自己输入用户名
-- 后端会自动生成用户名
-- 注册成功后会弹窗提示系统分配的用户名
-- 然后自动登录并跳转到首页 `/`
-
-这意味着：
-- 注册和游客账号现在使用同一套用户名生成逻辑
-- 用户后续登录仍然需要使用系统生成的用户名，因此前端会显式提示一次
+当前前端已不再提供独立注册页入口。
 
 ### `AutoRegisterPage.tsx`
 
@@ -180,11 +162,12 @@ React 启动入口，负责：
 
 当前行为：
 
-- 页面不再自动触发接口
+- 页面不会自动触发接口
 - 用户可以输入可选昵称
 - 点击“创建并进入”后调用 `authApi.autoRegister`
 - 后端创建游客账号并直接返回登录态
 - 前端写入认证上下文后跳转到首页
+- 页面底部提供“返回登录”链接
 
 ### `HomePage.tsx`
 
@@ -201,7 +184,11 @@ React 启动入口，负责：
 - 提供进入个人信息页按钮
 - 提供退出登录按钮
 
-从前端结构上看，首页仍然是当前最主要的业务容器。
+此外：
+
+- 点击退出时会先调用 `/auth/me`
+- 如果当前用户是游客账号，会弹出确认警告，提示退出后无法找回
+- 如果不是游客账号，则直接退出登录
 
 ### `ProfilePage.tsx`
 
@@ -221,13 +208,15 @@ React 启动入口，负责：
   - 昵称
   - 密码
 - 普通用户修改密码时需要输入旧密码
-- 游客账号首次设置密码时旧密码框会显示为锁定状态
-- 提供“重复新密码”输入框，前端会先校验两次输入一致
+- 游客账号首次设置密码时旧密码框仍会显示，但为锁定只读状态
+- 提供“重复新密码”输入框，前端先校验两次输入一致
 - 更新结果提示框显示在“更新资料”区域内
 
 此外：
-- 用户名输入框是只读状态，并带一个低调的锁图标
-- 用户名也会持续在该页面展示，方便用户后续登录使用
+
+- 用户名输入框是只读状态，并带低调的锁图标
+- 用户名会持续展示，方便用户后续登录使用
+- 可编辑输入框和只读输入框样式已做区分
 
 ## 2. contexts：全局状态层
 
@@ -299,7 +288,6 @@ React 启动入口，负责：
 当前能力包括：
 
 - 登录
-- 注册
 - 游客账号创建
 - 获取当前用户资料 `getMe()`
 - 更新当前用户资料 `updateProfile()`
@@ -308,10 +296,6 @@ React 启动入口，负责：
 
 - 开发环境：`http://127.0.0.1:52000/auth`
 - 生产环境：`/auth`
-
-这意味着：
-- 开发时仍然直接请求本地后端 52000
-- 后端托管前端 build 后，浏览器走同源请求
 
 ### `testApi.ts`
 
@@ -359,9 +343,9 @@ React 启动入口，负责：
 
 当前样式除了基础页面样式外，还包含：
 
-- 登录/注册/游客模式表单样式
+- 登录 / 游客模式表单样式
 - 首页列表与操作按钮样式
-- 个人信息页的详情卡片样式
+- 个人信息页详情卡片样式
 - 只读输入框与锁图标样式
 - 输入框 autofill 样式覆盖
 - `success` / `error` 提示样式
@@ -381,10 +365,9 @@ React 启动入口，负责：
 ### 认证数据流
 
 - 登录页发起用户名 + 密码登录
-- 注册页发起昵称 + 密码注册，后端生成用户名
 - 游客模式页发起游客账号创建，可选昵称
-- 成功后都调用 `AuthContext.login`
-- `AuthContext` 将 token、username、nickname 写入 `localStorage`
+- 成功后调用 `AuthContext.login`
+- `AuthContext` 将 token、username、nickname` 写入 `localStorage`
 - 个人信息页修改昵称成功后会调用 `updateProfile()` 同步上下文
 
 ### Test 数据流
@@ -447,15 +430,13 @@ npm run build
 
 ### 当前特点
 
-- 页面逻辑仍比较集中，尤其首页与资料页状态较多
+- 页面逻辑仍较集中，尤其首页与资料页状态较多
 - 没有抽出组件复用层
 - 没有引入 Redux、Zustand 等状态管理方案
 - 主要依赖原生 `fetch`
-- 注册成功提示用户名目前使用浏览器原生 `alert`
 
 ### 维护时值得关注的点
 
-- 若页面继续增长，可以逐步抽出表单组件或资料展示组件
 - 浏览器密码管理对“游客账号首次设密码”的识别仍可能不稳定
 - 资料页交互较多，后续如继续扩展可考虑拆分区域或组件
 - 当前样式集中在一个文件中，长期增长后可考虑按模块拆分
@@ -471,10 +452,9 @@ npm run build
 5. `frontend/src/api/authApi.ts`
 6. `frontend/src/api/testApi.ts`
 7. `frontend/src/pages/LoginPage.tsx`
-8. `frontend/src/pages/RegisterPage.tsx`
-9. `frontend/src/pages/AutoRegisterPage.tsx`
-10. `frontend/src/pages/HomePage.tsx`
-11. `frontend/src/pages/ProfilePage.tsx`
-12. `frontend/src/styles.css`
+8. `frontend/src/pages/AutoRegisterPage.tsx`
+9. `frontend/src/pages/HomePage.tsx`
+10. `frontend/src/pages/ProfilePage.tsx`
+11. `frontend/src/styles.css`
 
 这样可以先理解应用骨架，再进入认证、资料与用户隔离的业务实现。

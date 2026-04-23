@@ -2,12 +2,13 @@
 
 ## 概览
 
-后端位于 `backend/`，是一个基于 FastAPI 的本地服务，当前同时承担两类职责：
+后端位于 `backend/`，是一个基于 FastAPI 的本地服务，当前同时承担三类职责：
 
-- 认证与用户资料：登录、注册、游客账号、查看/更新个人信息、游客账号清理
+- 认证与用户资料：登录、游客账号、查看/更新个人信息、游客账号清理
 - Test 资源管理：按当前登录用户隔离的列表、创建、更新、删除
+- 前端静态资源托管：直接提供 `backend/dist/` 中的前端构建产物
 
-此外，后端现在还可以直接托管前端构建产物：当 `backend/dist/` 中存在前端 build 结果时，访问后端端口 `52000` 即可直接打开网页。
+访问后端端口 `52000` 时，既可以调用 API，也可以直接打开前端页面。
 
 技术栈包括：
 
@@ -25,7 +26,7 @@
 - `entities`：数据库实体层
 - `schemas`：请求/响应模型层
 - `db`：数据库初始化与会话管理
-- `utils`：常量与依赖注入
+- `utils`：常量、依赖注入与通用工具
 
 ## 目录结构
 
@@ -42,8 +43,7 @@ backend/
    │  └─ test_controller.py
    ├─ services/
    │  ├─ user_service.py
-   │  ├─ test_service.py
-   │  └─ snowflake.py
+   │  └─ test_service.py
    ├─ entities/
    │  ├─ user_entity.py
    │  └─ test_entity.py
@@ -54,7 +54,8 @@ backend/
    │  └─ database.py
    └─ utils/
       ├─ constant.py
-      └─ dependencies.py
+      ├─ dependencies.py
+      └─ snowflake.py
 ```
 
 其中：
@@ -62,6 +63,7 @@ backend/
 - `backend/app.py`：本地开发启动入口
 - `backend/app/main.py`：FastAPI 应用组装入口，同时负责静态文件托管与 SPA fallback
 - `backend/dist/`：前端构建产物输出目录
+- `backend/app/utils/snowflake.py`：字符串雪花 ID 生成器
 
 ## 启动入口
 
@@ -115,7 +117,6 @@ backend/
 
 负责 `/auth` 下的认证与用户相关接口：
 
-- `POST /auth/register`
 - `POST /auth/login`
 - `POST /auth/auto-register`
 - `GET /auth/me`
@@ -124,13 +125,14 @@ backend/
 
 当前行为：
 
-- 注册时只接收 `nickname` 和 `password`
-- 用户名不由前端提供，而是后端自动生成
+- 登录使用用户名 + 密码
 - 自动注册（游客账号）支持可选 `nickname`
 - `/auth/me` 返回当前用户资料
 - `/auth/update` 用于更新昵称和密码
 - `/auth/clean-guest` 可手动触发过期游客账号清理
 - 登录失败返回 `401`
+
+当前后端已不再提供普通注册接口。
 
 ### `test_controller.py`
 
@@ -157,14 +159,13 @@ backend/
 
 - 实现业务逻辑
 - 访问数据库实体
-- 生成 ID 或 Token
+- 生成 Token
 - 尽量保持 controller 轻量
 
 ### `user_service.py`
 
 负责用户相关核心逻辑：
 
-- 注册
 - 登录验证
 - 游客账号创建
 - 当前用户资料更新
@@ -175,14 +176,9 @@ backend/
 
 - 密码采用 `sha256(password + salt)` 哈希
 - 每个用户有独立 `salt`
-- 注册与游客账号都使用同一套随机用户名生成逻辑
-- 随机用户名为 6 位 `A-Za-z0-9`
-- 普通注册用户：
-  - 用户输入昵称和密码
-  - 后端生成用户名
-- 游客账号：
-  - 后端生成用户名和随机密码
-  - `is_auto_registered = True`
+- 游客账号用户名使用 6 位 `A-Za-z0-9` 随机字符串生成
+- 游客账号会生成随机密码
+- 游客账号：`is_auto_registered = True`
 - JWT 的 `sub` 存储用户 ID 字符串
 - Token 含过期时间 `exp`
 - 用户有两个毫秒时间戳字段：
@@ -202,21 +198,10 @@ backend/
 
 当前实现细节：
 
-- `test` 数据表现在带 `user_id`
+- `test` 数据表带 `user_id`
 - 所有查询条件都同时使用 `test.id` 和 `user_id`
 - 因此即使知道别人的 `id`，也无法越权更新或删除
 - `id` 依旧由 Snowflake 生成器生成字符串主键
-
-### `snowflake.py`
-
-负责生成全局唯一字符串 ID。
-
-特点：
-
-- 线程安全
-- 基于时间戳、机器位和序列位组合
-- 项目中通过共享单例 `snowflake` 使用
-- 当前 `users` 和 `test` 表都使用它生成字符串主键
 
 ## 3. entities：数据库实体层
 
@@ -274,7 +259,6 @@ backend/
 
 主要模型包括：
 
-- `RegisterRequest`
 - `LoginRequest`
 - `AutoRegisterRequest`
 - `UpdateCurrentUserRequest`
@@ -284,11 +268,12 @@ backend/
 
 说明：
 
-- `RegisterRequest` 当前只包含：
-  - `nickname`
-  - `password`
 - `AutoRegisterRequest` 支持可选 `nickname`
-- 登录和注册响应都包含：
+- 登录响应包含：
+  - `access_token`
+  - `username`
+  - `nickname`
+- 游客账号创建响应也包含：
   - `access_token`
   - `username`
   - `nickname`
@@ -365,6 +350,19 @@ backend/
 - 去数据库查找当前用户
 - token 无效、过期或查不到用户时统一返回 `401`
 
+### `snowflake.py`
+
+职责：
+
+- 生成字符串雪花 ID
+
+特点：
+
+- 线程安全
+- 基于时间戳、机器位和序列位组合
+- 项目中通过共享单例 `snowflake` 使用
+- 当前 `users` 和 `test` 表都依赖它生成字符串主键
+
 ## 核心运行流程
 
 后端当前主要运行链路如下：
@@ -384,7 +382,6 @@ backend/
 
 ### 认证与用户相关
 
-- 用户注册（系统自动分配用户名）
 - 用户登录
 - 创建游客账号
 - 查看当前用户资料
@@ -483,8 +480,9 @@ python app.py
 5. `backend/app/services/user_service.py`
 6. `backend/app/services/test_service.py`
 7. `backend/app/utils/dependencies.py`
-8. `backend/app/db/database.py`
-9. `backend/app/entities/*.py`
-10. `backend/app/schemas/*.py`
+8. `backend/app/utils/snowflake.py`
+9. `backend/app/db/database.py`
+10. `backend/app/entities/*.py`
+11. `backend/app/schemas/*.py`
 
 这样可以先建立整体运行链路，再深入到用户、游客账号、用户隔离的数据模型和具体实现。
