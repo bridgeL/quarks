@@ -33,28 +33,30 @@ export default function RoomPage() {
 
   useEffect(() => {
     if (!room_id) return
-    void loadRoom()
 
-    wsService.setMessageHandler((data) => {
-      const msg = data as { type: string; user_id?: string; username?: string; nickname?: string; is_auto_registered?: boolean }
-      if (msg.type === 'user_joined' && roomRef.current) {
-        setRoom((prev) =>
-          prev
-            ? {
-                ...prev,
-                users: [
-                  ...prev.users.filter((u) => u.user_id !== msg.user_id),
-                  { user_id: msg.user_id!, username: msg.username!, nickname: msg.nickname!, is_auto_registered: msg.is_auto_registered! },
-                ],
-              }
-            : prev
-        )
-      } else if (msg.type === 'user_left' && roomRef.current) {
-        setRoom((prev) =>
-          prev ? { ...prev, users: prev.users.filter((u) => u.user_id !== msg.user_id) } : prev
-        )
-      }
-    })
+    async function init() {
+      await loadRoom()
+      wsService.setMessageHandler((data) => {
+        const msg = data as { type: string; user_id?: string; username?: string; nickname?: string; is_auto_registered?: boolean }
+        if (msg.type === 'user_joined') {
+          setRoom((prev) => {
+            if (!prev) return prev
+            return {
+              ...prev,
+              users: [
+                ...prev.users.filter((u) => u.user_id !== msg.user_id),
+                { user_id: msg.user_id!, username: msg.username!, nickname: msg.nickname!, is_auto_registered: msg.is_auto_registered! },
+              ],
+            }
+          })
+        } else if (msg.type === 'user_left') {
+          setRoom((prev) =>
+            prev ? { ...prev, users: prev.users.filter((u) => u.user_id !== msg.user_id) } : prev
+          )
+        }
+      })
+    }
+    void init()
 
     return () => {
       wsService.setMessageHandler(null)

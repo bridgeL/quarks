@@ -30,6 +30,10 @@ export default function LobbyPage() {
 
   useEffect(() => {
     void loadRooms()
+    const timer = setInterval(() => {
+      void loadRooms()
+    }, 20000)
+    return () => clearInterval(timer)
   }, [])
 
   async function handleCreate() {
