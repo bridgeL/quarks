@@ -165,6 +165,83 @@ h2 {
   color: #ffb8c4;
 }
 
+.hero-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.username {
+  color: #8ea0ff;
+  font-size: 0.95rem;
+}
+
+.logout-btn {
+  background: #28324e;
+}
+
+.auth-panel {
+  max-width: 420px;
+  margin: 48px auto 0;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.auth-header h1 {
+  font-size: 2rem;
+  margin-top: 12px;
+}
+
+.auth-header .subtitle {
+  margin-top: 8px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-size: 0.9rem;
+  color: #9eabc7;
+}
+
+.auth-form button {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.auth-footer {
+  margin-top: 24px;
+  text-align: center;
+  color: #9eabc7;
+}
+
+.auth-footer a {
+  color: #8ea0ff;
+  text-decoration: none;
+}
+
+.auth-footer a:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 700px) {
   .create-form,
   .item-edit,
@@ -174,6 +251,15 @@ h2 {
   }
 
   button {
+    width: 100%;
+  }
+
+  .hero-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .logout-btn {
     width: 100%;
   }
 }

@@ -1,53 +1,45 @@
+import { apiRequest } from './base'
 import type { CreateTestRequest, DeleteTestRequest, TestItem, UpdateTestRequest } from '../types'
 
 const BASE_URL = 'http://127.0.0.1:52000/test'
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options?.headers ?? {}),
-    },
-    ...options,
-  })
-
-  if (!response.ok) {
-    let message = 'Request failed'
-    try {
-      const data = (await response.json()) as { detail?: string }
-      if (data.detail) {
-        message = data.detail
-      }
-    } catch {
-      message = response.statusText || message
-    }
-    throw new Error(message)
+export async function listTests(): Promise<TestItem[]> {
+  const result = await apiRequest<TestItem[]>(`${BASE_URL}/list`)
+  if (result.error) {
+    throw new Error(result.error)
   }
-
-  return response.json() as Promise<T>
+  return result.data!
 }
 
-export function listTests(): Promise<TestItem[]> {
-  return request<TestItem[]>('/list')
-}
-
-export function createTest(payload: CreateTestRequest): Promise<TestItem> {
-  return request<TestItem>('/create', {
+export async function createTest(payload: CreateTestRequest): Promise<TestItem> {
+  const result = await apiRequest<TestItem>(`${BASE_URL}/create`, {
     method: 'POST',
     body: JSON.stringify(payload),
   })
+  if (result.error) {
+    throw new Error(result.error)
+  }
+  return result.data!
 }
 
-export function updateTest(payload: UpdateTestRequest): Promise<TestItem> {
-  return request<TestItem>('/update', {
+export async function updateTest(payload: UpdateTestRequest): Promise<TestItem> {
+  const result = await apiRequest<TestItem>(`${BASE_URL}/update`, {
     method: 'POST',
     body: JSON.stringify(payload),
   })
+  if (result.error) {
+    throw new Error(result.error)
+  }
+  return result.data!
 }
 
-export function deleteTest(payload: DeleteTestRequest): Promise<TestItem> {
-  return request<TestItem>('/delete', {
+export async function deleteTest(payload: DeleteTestRequest): Promise<TestItem> {
+  const result = await apiRequest<TestItem>(`${BASE_URL}/delete`, {
     method: 'POST',
     body: JSON.stringify(payload),
   })
+  if (result.error) {
+    throw new Error(result.error)
+  }
+  return result.data!
 }
