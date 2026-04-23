@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 
 import { useAuth } from '../contexts/AuthContext'
+import AutoRegisterPage from '../pages/AutoRegisterPage'
 import HomePage from '../pages/HomePage'
 import LoginPage from '../pages/LoginPage'
 import RegisterPage from '../pages/RegisterPage'
@@ -27,6 +28,7 @@ function AppRoutes() {
       <Route element={<GuestRoute />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/auto-register" element={<AutoRegisterPage />} />
       </Route>
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<HomePage />} />

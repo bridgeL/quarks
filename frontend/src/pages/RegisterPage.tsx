@@ -23,7 +23,7 @@ export default function RegisterPage() {
     setError('')
     try {
       const data = await register({ username: username.trim(), password })
-      setToken(data.access_token, username.trim())
+      setToken(data.access_token, data.username, data.nickname)
       navigate('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : '注册失败')

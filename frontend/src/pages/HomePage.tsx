@@ -14,7 +14,7 @@ export default function HomePage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const { logout, username } = useAuth()
+  const { logout, nickname } = useAuth()
   const navigate = useNavigate()
 
   const sortedTests = useMemo(() => [...tests].sort((a, b) => b.id.localeCompare(a.id)), [tests])
@@ -111,7 +111,7 @@ export default function HomePage() {
             <p className="subtitle">连接本地 FastAPI 服务，完成 test 的增删改查。</p>
           </div>
           <div className="user-info">
-            <span className="username">{username}</span>
+            <span className="username">{nickname}</span>
             <button type="button" className="logout-btn" onClick={handleLogout}>
               退出登录
             </button>
