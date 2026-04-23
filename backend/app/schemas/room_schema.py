@@ -28,6 +28,7 @@ class RoomListItem(BaseModel):
     created_by_nickname: str
     created_at: int
     user_count: int
+    status: str
 
 
 class CreateRoomResponse(BaseModel):

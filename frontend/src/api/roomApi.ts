@@ -22,6 +22,7 @@ export interface RoomListItem {
   created_by_nickname: string
   created_at: number
   user_count: number
+  status: string
 }
 
 export interface RoomUserInfo {
@@ -88,6 +89,26 @@ export async function joinRoom(roomId: string): Promise<JoinLeaveResponse> {
 
 export async function leaveRoom(roomId: string): Promise<JoinLeaveResponse> {
   const result = await apiRequest<JoinLeaveResponse>(`${BASE_URL}/${roomId}/leave`, {
+    method: 'POST',
+  })
+  if (result.error) {
+    throw new Error(result.error)
+  }
+  return result.data!
+}
+
+export async function startGame(roomId: string): Promise<{ ok: boolean; room_id: string; status: string }> {
+  const result = await apiRequest<{ ok: boolean; room_id: string; status: string }>(`${BASE_URL}/${roomId}/start`, {
+    method: 'POST',
+  })
+  if (result.error) {
+    throw new Error(result.error)
+  }
+  return result.data!
+}
+
+export async function endGame(roomId: string): Promise<{ ok: boolean; room_id: string; status: string }> {
+  const result = await apiRequest<{ ok: boolean; room_id: string; status: string }>(`${BASE_URL}/${roomId}/end`, {
     method: 'POST',
   })
   if (result.error) {

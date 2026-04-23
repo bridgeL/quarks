@@ -79,6 +79,7 @@ def list_rooms(
             created_by_nickname=creator.nickname if creator else room.created_by,
             created_at=room.created_at,
             user_count=len(room.users),
+            status=room.status,
         ))
     response = items
     logger.info(f"GET /room/list response: {response}")
@@ -106,9 +107,12 @@ async def join_room(
     current_user: UserEntity = Depends(get_current_user),
 ):
     logger.info(f"POST /room/{room_id}/join request: user_id={current_user.id}")
+    existing = room_server.get_room(room_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="房间不存在")
+    if existing.status == "playing":
+        raise HTTPException(status_code=400, detail="房间已开始游戏，无法加入")
     room = room_server.join_room(room_id, current_user.id)
-    if not room:
-        raise HTTPException(status_code=404, detail="Room not found")
     await room_server.broadcast_to_room(
         room_id,
         json.dumps({
@@ -139,3 +143,35 @@ async def leave_room(
     response = JoinLeaveResponse(ok=True, room_id=room_id)
     logger.info(f"POST /room/{room_id}/leave response: {response}")
     return response
+
+
+@router.post("/{room_id}/start")
+async def start_game(
+    room_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    logger.info(f"POST /room/{room_id}/start request: user_id={current_user.id}")
+    ok, err = room_server.start_game(room_id)
+    if not ok:
+        raise HTTPException(status_code=400, detail=err)
+    room = room_server.get_room(room_id)
+    await room_server.broadcast_to_room(room_id, json.dumps({"type": "game_started", "room_id": room_id}))
+    logger.info(f"POST /room/{room_id}/start response: ok=True")
+    return {"ok": True, "room_id": room_id, "status": room.status if room else ""}
+
+
+@router.post("/{room_id}/end")
+async def end_game(
+    room_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    logger.info(f"POST /room/{room_id}/end request: user_id={current_user.id}")
+    ok, err = room_server.end_game(room_id)
+    if not ok:
+        raise HTTPException(status_code=400, detail=err)
+    room = room_server.get_room(room_id)
+    await room_server.broadcast_to_room(room_id, json.dumps({"type": "game_ended", "room_id": room_id}))
+    logger.info(f"POST /room/{room_id}/end response: ok=True")
+    return {"ok": True, "room_id": room_id, "status": room.status if room else ""}

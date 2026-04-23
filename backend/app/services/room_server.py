@@ -88,5 +88,25 @@ class RoomServer:
                 continue
             await ws_manager.send_personal(message, uid)
 
+    def start_game(self, room_id: str) -> tuple[bool, str]:
+        room = self._rooms.get(room_id)
+        if not room:
+            return False, "Room not found"
+        if len(room.users) < 2 or len(room.users) > 5:
+            return False, "Player count must be between 2 and 5"
+        if room.status == "playing":
+            return False, "Game already started"
+        room.status = "playing"
+        return True, ""
+
+    def end_game(self, room_id: str) -> tuple[bool, str]:
+        room = self._rooms.get(room_id)
+        if not room:
+            return False, "Room not found"
+        if room.status == "preparing":
+            return False, "Game not started"
+        room.status = "preparing"
+        return True, ""
+
 
 room_server = RoomServer()

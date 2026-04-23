@@ -126,6 +126,8 @@ export default function LobbyPage() {
                 <span className="room-dot">·</span>
                 <span>{room.user_count} 人在线</span>
                 <span className="room-dot">·</span>
+                <span>{room.status === 'preparing' ? '准备中' : '游戏中'}</span>
+                <span className="room-dot">·</span>
                 <span>{formatTime(room.created_at)}</span>
               </div>
               <div className="room-card-footer">

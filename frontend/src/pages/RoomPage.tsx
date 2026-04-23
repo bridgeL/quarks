@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { getRoom, joinRoom, leaveRoom } from '../api/roomApi'
+import { getRoom, joinRoom, leaveRoom, startGame, endGame, type RoomResponse } from '../api/roomApi'
 import wsService from '../services/wsService'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -53,6 +53,10 @@ export default function RoomPage() {
           setRoom((prev) =>
             prev ? { ...prev, users: prev.users.filter((u) => u.user_id !== msg.user_id) } : prev
           )
+        } else if (msg.type === 'game_started') {
+          setRoom((prev) => prev ? { ...prev, status: 'playing' } : prev)
+        } else if (msg.type === 'game_ended') {
+          setRoom((prev) => prev ? { ...prev, status: 'preparing' } : prev)
         }
       })
     }
@@ -73,6 +77,24 @@ export default function RoomPage() {
     }
   }
 
+  async function handleStartGame() {
+    if (!room_id) return
+    try {
+      await startGame(room_id)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '开始游戏失败')
+    }
+  }
+
+  async function handleEndGame() {
+    if (!room_id) return
+    try {
+      await endGame(room_id)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '结束游戏失败')
+    }
+  }
+
   if (loading) {
     return (
       <main className="page">
@@ -88,7 +110,7 @@ export default function RoomPage() {
           <div className="hero-content">
             <div>
               <p className="eyebrow">Quarks</p>
-              <h1>房间不存在</h1>
+              <h1>房间加入失败</h1>
               <p className="subtitle">{error || '无法找到该房间'}</p>
             </div>
             <div className="user-info">
@@ -113,6 +135,21 @@ export default function RoomPage() {
           </div>
           <div className="user-info">
             <span className="username">{nickname}</span>
+            {room.status === 'preparing' ? (
+              <button
+                type="button"
+                className="primary"
+                onClick={() => void handleStartGame()}
+                disabled={room.users.length < 2 || room.users.length > 5}
+                title={room.users.length < 2 ? '需要至少2人' : room.users.length > 5 ? '最多5人' : '开始游戏'}
+              >
+                开始游戏
+              </button>
+            ) : (
+              <button type="button" className="secondary" onClick={() => void handleEndGame()}>
+                结束游戏
+              </button>
+            )}
             <button type="button" className="danger" onClick={() => void handleLeave()}>
               离开房间
             </button>
