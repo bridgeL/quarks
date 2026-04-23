@@ -106,12 +106,10 @@ export default function HomePage() {
           return
         }
       }
-    } catch {
-      return
+    } finally {
+      logout()
+      navigate('/login')
     }
-
-    logout()
-    navigate('/login')
   }
 
   function handleOpenProfile() {
