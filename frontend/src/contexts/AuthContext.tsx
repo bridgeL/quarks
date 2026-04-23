@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import wsService from '../services/wsService'
 
 interface AuthContextType {
@@ -20,6 +20,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY))
   const [username, setUsername] = useState<string | null>(() => localStorage.getItem(USERNAME_KEY))
   const [nickname, setNickname] = useState<string | null>(() => localStorage.getItem(NICKNAME_KEY))
+
+  // 页面加载时初始化 WS timer，如果有 token 则建立连接
+  useEffect(() => {
+    if (token) {
+      wsService.connect(token)
+    }
+    wsService.init()
+  }, [])
 
   const login = useCallback((newToken: string, newUsername: string, newNickname: string) => {
     localStorage.setItem(TOKEN_KEY, newToken)

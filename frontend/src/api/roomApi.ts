@@ -1,0 +1,97 @@
+import { apiRequest } from './base'
+
+const API_ORIGIN = import.meta.env.DEV ? 'http://127.0.0.1:52000' : ''
+const BASE_URL = `${API_ORIGIN}/room`
+
+export interface CreateRoomRequest {
+  name?: string
+}
+
+export interface CreateRoomResponse {
+  room_id: string
+  name: string
+  created_by: string
+  created_at: number
+  status: string
+}
+
+export interface RoomListItem {
+  room_id: string
+  name: string
+  created_by: string
+  created_by_nickname: string
+  created_at: number
+  user_count: number
+}
+
+export interface RoomUserInfo {
+  user_id: string
+  username: string
+  nickname: string
+  is_auto_registered: boolean
+}
+
+export interface RoomResponse {
+  room_id: string
+  name: string
+  created_by: string
+  created_at: number
+  status: string
+  users: RoomUserInfo[]
+}
+
+export interface JoinLeaveResponse {
+  ok: boolean
+  room_id: string
+}
+
+export async function createRoom(name?: string): Promise<CreateRoomResponse> {
+  const result = await apiRequest<CreateRoomResponse>(`${BASE_URL}/create`, {
+    method: 'POST',
+    body: JSON.stringify({ name } as CreateRoomRequest),
+  })
+  if (result.error) {
+    throw new Error(result.error)
+  }
+  return result.data!
+}
+
+export async function listRooms(): Promise<RoomListItem[]> {
+  const result = await apiRequest<RoomListItem[]>(`${BASE_URL}/list`, {
+    method: 'GET',
+  })
+  if (result.error) {
+    throw new Error(result.error)
+  }
+  return result.data!
+}
+
+export async function getRoom(roomId: string): Promise<RoomResponse> {
+  const result = await apiRequest<RoomResponse>(`${BASE_URL}/${roomId}`, {
+    method: 'GET',
+  })
+  if (result.error) {
+    throw new Error(result.error)
+  }
+  return result.data!
+}
+
+export async function joinRoom(roomId: string): Promise<JoinLeaveResponse> {
+  const result = await apiRequest<JoinLeaveResponse>(`${BASE_URL}/${roomId}/join`, {
+    method: 'POST',
+  })
+  if (result.error) {
+    throw new Error(result.error)
+  }
+  return result.data!
+}
+
+export async function leaveRoom(roomId: string): Promise<JoinLeaveResponse> {
+  const result = await apiRequest<JoinLeaveResponse>(`${BASE_URL}/${roomId}/leave`, {
+    method: 'POST',
+  })
+  if (result.error) {
+    throw new Error(result.error)
+  }
+  return result.data!
+}

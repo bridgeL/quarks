@@ -91,6 +91,13 @@ export async function getMe(): Promise<CurrentUserResponse> {
   return result.data!
 }
 
+export async function pingAuth(): Promise<boolean> {
+  const result = await apiRequest<{ ok: boolean }>(`${BASE_URL}/ping`, {
+    method: 'GET',
+  })
+  return result.data?.ok === true
+}
+
 export async function updateProfile(payload: UpdateProfileRequest): Promise<CurrentUserResponse> {
   const result = await apiRequest<CurrentUserResponse>(`${BASE_URL}/update`, {
     method: 'POST',

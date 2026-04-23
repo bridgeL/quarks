@@ -231,6 +231,196 @@ h2 {
   font-size: 1.05rem;
 }
 
+.item-info {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: #7f8cab;
+  font-size: 0.875rem;
+  margin-bottom: 12px;
+}
+
+.room-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.room-card {
+  padding: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 18px;
+  background: rgba(16, 24, 44, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.2s;
+}
+
+.room-card:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.room-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.room-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-id-badge {
+  flex-shrink: 0;
+  background: rgba(99, 102, 241, 0.15);
+  color: #c7d2fe;
+  font-size: 0.9rem;
+  font-family: monospace;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+}
+
+.room-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.room-avatar {
+  color: #94a3b8;
+}
+
+.room-dot {
+  color: #475569;
+}
+
+.room-card-footer {
+  margin-top: 4px;
+}
+
+.room-join-btn {
+  width: 100%;
+  padding: 9px 16px;
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.room-join-btn:hover {
+  background: rgba(99, 102, 241, 0.35);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #c7d2fe;
+}
+
+.user-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 14px;
+  background: rgba(16, 24, 44, 0.7);
+  transition: border-color 0.2s;
+}
+
+.user-card:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.user-card-guest {
+  border-color: rgba(234, 179, 8, 0.2);
+  background: rgba(234, 179, 8, 0.04);
+}
+
+.user-card-guest:hover {
+  border-color: rgba(234, 179, 8, 0.4);
+}
+
+.user-card-avatar {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.user-card-avatar-guest {
+  background: rgba(234, 179, 8, 0.2);
+  color: #fbbf24;
+}
+
+.user-card-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.user-card-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-card-you {
+  font-weight: 400;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.user-card-guest-badge {
+  display: inline-block;
+  background: rgba(234, 179, 8, 0.15);
+  color: #fbbf24;
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.user-card-username {
+  font-size: 0.75rem;
+  color: #475569;
+  font-family: monospace;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .empty,
 .error,
 .success {

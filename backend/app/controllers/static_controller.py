@@ -20,7 +20,7 @@ def serve_index():
 
 @router.get('/{full_path:path}')
 def serve_spa(full_path: str):
-    if full_path.startswith('auth/') or full_path.startswith('test/') or full_path.startswith('assets/') or full_path.startswith('ws/'):
+    if full_path.startswith('auth/') or full_path.startswith('test/') or full_path.startswith('assets/') or full_path.startswith('ws/') or full_path.startswith('room/'):
         raise HTTPException(status_code=404, detail='Not found')
     if not INDEX_FILE.exists():
         raise HTTPException(status_code=404, detail='Frontend build not found in backend/dist')

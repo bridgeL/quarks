@@ -1,0 +1,141 @@
+import json
+
+from fastapi import APIRouter, Depends, HTTPException
+from loguru import logger
+from sqlalchemy.orm import Session
+
+from app.entities.user_entity import UserEntity
+from app.schemas.room_schema import (
+    CreateRoomRequest,
+    CreateRoomResponse,
+    JoinLeaveResponse,
+    RoomListItem,
+    RoomResponse,
+    RoomUserInfo,
+)
+from app.services.room_server import room_server
+from app.utils.dependencies import get_current_user, get_db
+from app.utils.id_generator import generate_id
+
+router = APIRouter(prefix="/room")
+
+
+def _room_to_response(room_id: str, db: Session) -> RoomResponse | None:
+    room = room_server.get_room(room_id)
+    if not room:
+        return None
+    users = []
+    for uid in room.users:
+        user = db.query(UserEntity).filter(UserEntity.id == uid).first()
+        if user:
+            users.append(RoomUserInfo(
+            user_id=uid,
+            username=user.username,
+            nickname=user.nickname,
+            is_auto_registered=user.is_auto_registered,
+        ))
+    return RoomResponse(
+        room_id=room.room_id,
+        name=room.name,
+        created_by=room.created_by,
+        created_at=room.created_at,
+        status=room.status,
+        users=users,
+    )
+
+
+@router.post("/create", response_model=CreateRoomResponse)
+def create_room(
+    request: CreateRoomRequest,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    logger.info(f"POST /room/create request: name={request.name}, user_id={current_user.id}")
+    room_id = generate_id(6)
+    room = room_server.create_room(room_id, current_user.id, request.name)
+    response = CreateRoomResponse(
+        room_id=room.room_id,
+        name=room.name,
+        created_by=room.created_by,
+        created_at=room.created_at,
+        status=room.status,
+    )
+    logger.info(f"POST /room/create response: {response}")
+    return response
+
+
+@router.get("/list", response_model=list[RoomListItem])
+def list_rooms(
+    db: Session = Depends(get_db),
+):
+    logger.info("GET /room/list request")
+    items = []
+    for room in room_server.list_rooms():
+        creator = db.query(UserEntity).filter(UserEntity.id == room.created_by).first()
+        items.append(RoomListItem(
+            room_id=room.room_id,
+            name=room.name,
+            created_by=room.created_by,
+            created_by_nickname=creator.nickname if creator else room.created_by,
+            created_at=room.created_at,
+            user_count=len(room.users),
+        ))
+    response = items
+    logger.info(f"GET /room/list response: {response}")
+    return response
+
+
+@router.get("/{room_id}", response_model=RoomResponse)
+def get_room(
+    room_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    logger.info(f"GET /room/{room_id} request: user_id={current_user.id}")
+    response = _room_to_response(room_id, db)
+    if not response:
+        raise HTTPException(status_code=404, detail="Room not found")
+    logger.info(f"GET /room/{room_id} response: {response}")
+    return response
+
+
+@router.post("/{room_id}/join", response_model=JoinLeaveResponse)
+async def join_room(
+    room_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    logger.info(f"POST /room/{room_id}/join request: user_id={current_user.id}")
+    room = room_server.join_room(room_id, current_user.id)
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    await room_server.broadcast_to_room(
+        room_id,
+        json.dumps({
+            "type": "user_joined",
+            "user_id": current_user.id,
+            "username": current_user.username,
+            "nickname": current_user.nickname,
+            "is_auto_registered": current_user.is_auto_registered,
+        }),
+        exclude_user_id=current_user.id,
+    )
+    response = JoinLeaveResponse(ok=True, room_id=room_id)
+    logger.info(f"POST /room/{room_id}/join response: {response}")
+    return response
+
+
+@router.post("/{room_id}/leave", response_model=JoinLeaveResponse)
+async def leave_room(
+    room_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    logger.info(f"POST /room/{room_id}/leave request: user_id={current_user.id}")
+    room_id_left = room_server.leave_room(current_user.id)
+    msg = json.dumps({"type": "user_left", "user_id": current_user.id})
+    if room_id_left:
+        await room_server.broadcast_to_room(room_id_left, msg)
+    response = JoinLeaveResponse(ok=True, room_id=room_id)
+    logger.info(f"POST /room/{room_id}/leave response: {response}")
+    return response

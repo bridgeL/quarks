@@ -130,6 +130,9 @@ export default function HomePage() {
             <button type="button" className="secondary" onClick={handleOpenProfile}>
               个人信息
             </button>
+            <button type="button" className="secondary" onClick={() => navigate('/lobby')}>
+              房间大厅
+            </button>
             <button type="button" className="logout-btn" onClick={() => void handleLogout()}>
               退出登录
             </button>

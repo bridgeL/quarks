@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.controllers.auth_controller import router as auth_router
+from app.controllers.room_controller import router as room_router
 from app.controllers.static_controller import router as static_router, register_static
 from app.controllers.test_controller import router as test_router
 from app.controllers.ws_controller import router as ws_router
@@ -38,5 +39,6 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(test_router)
 app.include_router(ws_router)
+app.include_router(room_router)
 app.include_router(static_router)
 register_static(app)

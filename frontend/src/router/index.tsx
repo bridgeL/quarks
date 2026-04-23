@@ -3,8 +3,10 @@ import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import AutoRegisterPage from '../pages/AutoRegisterPage'
 import HomePage from '../pages/HomePage'
+import LobbyPage from '../pages/LobbyPage'
 import LoginPage from '../pages/LoginPage'
 import ProfilePage from '../pages/ProfilePage'
+import RoomPage from '../pages/RoomPage'
 
 function ProtectedRoute() {
   const { token } = useAuth()
@@ -31,6 +33,8 @@ function AppRoutes() {
       </Route>
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/lobby" element={<LobbyPage />} />
+        <Route path="/room/:room_id" element={<RoomPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
     </Routes>

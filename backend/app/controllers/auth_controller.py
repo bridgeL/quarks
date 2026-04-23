@@ -39,6 +39,12 @@ def auto_register(request: AutoRegisterRequest, db: Session = Depends(get_db)):
     return response
 
 
+@router.get("/ping")
+def ping(current_user: UserEntity = Depends(get_current_user)):
+    logger.info(f"GET /auth/ping request: user_id={current_user.id}")
+    return {"ok": True}
+
+
 @router.get("/me", response_model=CurrentUserResponse)
 def get_current_user_profile(current_user: UserEntity = Depends(get_current_user)):
     logger.info(f"GET /auth/me request: user_id={current_user.id}")

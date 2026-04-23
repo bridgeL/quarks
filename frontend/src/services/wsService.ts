@@ -1,3 +1,4 @@
+const API_ORIGIN = import.meta.env.DEV ? 'http://127.0.0.1:52000' : ''
 const WS_ORIGIN = import.meta.env.DEV ? 'ws://127.0.0.1:52000' : ''
 const WS_URL = `${WS_ORIGIN}/ws/connect`
 
@@ -10,44 +11,54 @@ type MessageHandler = (data: unknown) => void
 type VoidHandler = () => void
 
 interface WsService {
+  init: () => void
   connect: (token: string) => void
   disconnect: () => void
   send: (data: unknown) => void
   onOpen: (handler: VoidHandler) => void
-  onMessage: (handler: MessageHandler) => void
+  setMessageHandler: (handler: MessageHandler | null) => void
   onClose: (handler: VoidHandler) => void
   onError: (handler: (error: Event) => void) => void
 }
 
 let ws: WebSocket | null = null
-let token: string | null = null
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null
 let reconnectTimer: ReturnType<typeof setInterval> | null = null
+let cachedToken: string | null = null
+let cachedPingValid = false
 
 const openHandlers: VoidHandler[] = []
-const messageHandlers: MessageHandler[] = []
+let messageHandler: MessageHandler | null = null
 const closeHandlers: VoidHandler[] = []
 const errorHandlers: ((error: Event) => void)[] = []
 
-function isLoggedIn(): boolean {
-  return localStorage.getItem(TOKEN_KEY) !== null
+function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY)
 }
 
-function clearTimers(): void {
-  if (heartbeatTimer) {
-    clearInterval(heartbeatTimer)
-    heartbeatTimer = null
+async function validateToken(): Promise<boolean> {
+  const token = getToken()
+  if (!token) {
+    cachedToken = null
+    cachedPingValid = false
+    return false
   }
-  if (reconnectTimer) {
-    clearInterval(reconnectTimer)
-    reconnectTimer = null
+  if (token !== cachedToken) {
+    cachedToken = token
+    try {
+      const res = await fetch(`${API_ORIGIN}/auth/ping`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      cachedPingValid = res.ok
+    } catch {
+      cachedPingValid = false
+    }
   }
+  return cachedPingValid
 }
 
 function startHeartbeat(): void {
-  if (heartbeatTimer) {
-    clearInterval(heartbeatTimer)
-  }
+  if (heartbeatTimer) return
   heartbeatTimer = setInterval(() => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       const payload = JSON.stringify({ type: 'ping' })
@@ -58,20 +69,17 @@ function startHeartbeat(): void {
 }
 
 function startReconnect(): void {
-  if (reconnectTimer) {
-    clearInterval(reconnectTimer)
-  }
-  reconnectTimer = setInterval(() => {
-    if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
-      if (isLoggedIn() && token) {
-        connect(token)
-      }
+  if (reconnectTimer) return
+  reconnectTimer = setInterval(async () => {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return
+    if (await validateToken()) {
+      const token = getToken()
+      if (token) _connect(token)
     }
   }, RECONNECT_INTERVAL)
 }
 
-function connect(newToken: string): void {
-  token = newToken
+function _connect(token: string): void {
   if (ws) {
     ws.onopen = null
     ws.onmessage = null
@@ -82,11 +90,10 @@ function connect(newToken: string): void {
     }
     ws = null
   }
-  ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(newToken)}`)
+  ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`)
 
   ws.onopen = () => {
     console.log('[WS] connected')
-    startHeartbeat()
     openHandlers.forEach((h) => h())
   }
 
@@ -102,20 +109,16 @@ function connect(newToken: string): void {
         }
         return
       }
-      messageHandlers.forEach((h) => h(msg))
+      messageHandler?.(msg)
     } catch {
-      messageHandlers.forEach((h) => h(event.data))
+      messageHandler?.(event.data)
     }
   }
 
   ws.onclose = () => {
     console.log('[WS] closed')
-    clearTimers()
     ws = null
     closeHandlers.forEach((h) => h())
-    if (isLoggedIn()) {
-      startReconnect()
-    }
   }
 
   ws.onerror = (event) => {
@@ -123,8 +126,18 @@ function connect(newToken: string): void {
   }
 }
 
+function connect(token: string): void {
+  cachedToken = token
+  cachedPingValid = true
+  _connect(token)
+}
+
+function init(): void {
+  startHeartbeat()
+  startReconnect()
+}
+
 function disconnect(): void {
-  clearTimers()
   if (ws) {
     ws.onopen = null
     ws.onmessage = null
@@ -133,7 +146,8 @@ function disconnect(): void {
     ws.close()
     ws = null
   }
-  token = null
+  cachedToken = null
+  cachedPingValid = false
 }
 
 function send(data: unknown): void {
@@ -148,8 +162,8 @@ function onOpen(handler: VoidHandler): void {
   openHandlers.push(handler)
 }
 
-function onMessage(handler: MessageHandler): void {
-  messageHandlers.push(handler)
+function setMessageHandler(handler: MessageHandler | null): void {
+  messageHandler = handler
 }
 
 function onClose(handler: VoidHandler): void {
@@ -160,6 +174,6 @@ function onError(handler: (error: Event) => void): void {
   errorHandlers.push(handler)
 }
 
-const wsService: WsService = { connect, disconnect, send, onOpen, onMessage, onClose, onError }
+const wsService: WsService = { init, connect, disconnect, send, onOpen, setMessageHandler, onClose, onError }
 
 export default wsService
