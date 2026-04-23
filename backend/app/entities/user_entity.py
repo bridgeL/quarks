@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Boolean, String
+from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -7,7 +7,7 @@ from app.db.database import Base
 class UserEntity(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     username: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
     nickname: Mapped[str] = mapped_column(String, nullable=False)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)

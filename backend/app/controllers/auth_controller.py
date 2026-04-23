@@ -1,34 +1,75 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.utils.dependencies import get_db
-from app.schemas.user_schema import AutoRegisterResponse, LoginRequest, RegisterRequest, TokenResponse
-from app.services.user_service import UserService
+from app.entities.user_entity import UserEntity
+from app.schemas.user_schema import (
+    AutoRegisterRequest,
+    AutoRegisterResponse,
+    CurrentUserResponse,
+    LoginRequest,
+    RegisterRequest,
+    TokenResponse,
+    UpdateCurrentUserRequest,
+)
+from app.services.user_service import user_service
+from app.utils.dependencies import get_current_user, get_db
 
 router = APIRouter(prefix="/auth")
-service = UserService()
 
 
 @router.post("/register", response_model=TokenResponse)
 def register(request: RegisterRequest, db: Session = Depends(get_db)):
-    user, error = service.register(db, request.username, request.password, request.nickname)
+    user, error = user_service.register(db, request.username, request.password, request.nickname)
     if error:
         raise HTTPException(status_code=400, detail=error)
-    token = service.create_token(user.id)
+    token = user_service.create_token(user.id)
     return TokenResponse(access_token=token, username=user.username, nickname=user.nickname)
 
 
 @router.post("/login", response_model=TokenResponse)
 def login(request: LoginRequest, db: Session = Depends(get_db)):
-    user = service.verify(db, request.username, request.password)
+    user = user_service.verify(db, request.username, request.password)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid username or password")
-    token = service.create_token(user.id)
+    token = user_service.create_token(user.id)
     return TokenResponse(access_token=token, username=user.username, nickname=user.nickname)
 
 
 @router.post("/auto-register", response_model=AutoRegisterResponse)
-def auto_register(db: Session = Depends(get_db)):
-    user = service.auto_register(db)
-    token = service.create_token(user.id)
+def auto_register(request: AutoRegisterRequest, db: Session = Depends(get_db)):
+    user = user_service.auto_register(db, request.nickname)
+    token = user_service.create_token(user.id)
     return AutoRegisterResponse(access_token=token, username=user.username, nickname=user.nickname)
+
+
+@router.get("/me", response_model=CurrentUserResponse)
+def get_current_user_profile(current_user: UserEntity = Depends(get_current_user)):
+    return CurrentUserResponse(
+        id=current_user.id,
+        username=current_user.username,
+        nickname=current_user.nickname,
+        is_auto_registered=current_user.is_auto_registered,
+    )
+
+
+@router.post("/update", response_model=CurrentUserResponse)
+def update_current_user_profile(
+    request: UpdateCurrentUserRequest,
+    db: Session = Depends(get_db),
+    current_user: UserEntity = Depends(get_current_user),
+):
+    user, error = user_service.update_current_user(
+        db,
+        current_user,
+        request.nickname,
+        request.password,
+        request.old_password,
+    )
+    if error:
+        raise HTTPException(status_code=400, detail=error)
+    return CurrentUserResponse(
+        id=user.id,
+        username=user.username,
+        nickname=user.nickname,
+        is_auto_registered=user.is_auto_registered,
+    )

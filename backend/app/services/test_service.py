@@ -16,7 +16,7 @@ class TestService:
         return test
 
     def update(self, db: Session, test_id: str, name: str) -> TestEntity | None:
-        test = db.query(TestEntity).filter(TestEntity.id == int(test_id)).first()
+        test = db.query(TestEntity).filter(TestEntity.id == test_id).first()
         if test is None:
             return None
         test.name = name
@@ -25,9 +25,12 @@ class TestService:
         return test
 
     def delete(self, db: Session, test_id: str) -> TestEntity | None:
-        test = db.query(TestEntity).filter(TestEntity.id == int(test_id)).first()
+        test = db.query(TestEntity).filter(TestEntity.id == test_id).first()
         if test is None:
             return None
         db.delete(test)
         db.commit()
         return test
+
+
+test_service = TestService()

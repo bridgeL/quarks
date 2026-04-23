@@ -13,7 +13,13 @@ class LoginRequest(BaseModel):
 
 
 class AutoRegisterRequest(BaseModel):
-    pass
+    nickname: str | None = None
+
+
+class UpdateCurrentUserRequest(BaseModel):
+    nickname: str | None = None
+    old_password: str | None = None
+    password: str | None = None
 
 
 class TokenResponse(BaseModel):
@@ -28,3 +34,10 @@ class AutoRegisterResponse(BaseModel):
     username: str
     nickname: str
     token_type: str = "bearer"
+
+
+class CurrentUserResponse(BaseModel):
+    id: str
+    username: str
+    nickname: str
+    is_auto_registered: bool

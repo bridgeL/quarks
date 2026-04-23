@@ -5,10 +5,9 @@ from app.utils.dependencies import get_current_user, get_db
 from app.entities.test_entity import TestEntity
 from app.entities.user_entity import UserEntity
 from app.schemas.test_schema import CreateTestRequest, DeleteTestRequest, NameResponse, UpdateTestRequest
-from app.services.test_service import TestService
+from app.services.test_service import test_service
 
 router = APIRouter(prefix="/test")
-service = TestService()
 
 
 @router.get("/health")
@@ -21,8 +20,8 @@ def list_tests(
     db: Session = Depends(get_db),
     current_user: UserEntity = Depends(get_current_user),
 ):
-    tests: list[TestEntity] = service.list_tests(db)
-    return [NameResponse(id=str(test.id), name=test.name) for test in tests]
+    tests: list[TestEntity] = test_service.list_tests(db)
+    return [NameResponse(id=test.id, name=test.name) for test in tests]
 
 
 @router.post("/create", response_model=NameResponse)
@@ -31,8 +30,8 @@ def create_test(
     db: Session = Depends(get_db),
     current_user: UserEntity = Depends(get_current_user),
 ):
-    test = service.create(db, request.name)
-    return NameResponse(id=str(test.id), name=test.name)
+    test = test_service.create(db, request.name)
+    return NameResponse(id=test.id, name=test.name)
 
 
 @router.post("/update", response_model=NameResponse)
@@ -41,10 +40,10 @@ def update_test(
     db: Session = Depends(get_db),
     current_user: UserEntity = Depends(get_current_user),
 ):
-    test = service.update(db, request.id, request.name)
+    test = test_service.update(db, request.id, request.name)
     if test is None:
         raise HTTPException(status_code=404, detail="Data not found")
-    return NameResponse(id=str(test.id), name=test.name)
+    return NameResponse(id=test.id, name=test.name)
 
 
 @router.post("/delete", response_model=NameResponse)
@@ -53,7 +52,7 @@ def delete_test(
     db: Session = Depends(get_db),
     current_user: UserEntity = Depends(get_current_user),
 ):
-    test = service.delete(db, request.id)
+    test = test_service.delete(db, request.id)
     if test is None:
         raise HTTPException(status_code=404, detail="Data not found")
-    return NameResponse(id=str(test.id), name=test.name)
+    return NameResponse(id=test.id, name=test.name)

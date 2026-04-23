@@ -19,7 +19,7 @@ class SnowflakeGenerator:
             timestamp = self._current_timestamp()
         return timestamp
 
-    def generate(self) -> int:
+    def generate(self) -> str:
         with self.lock:
             timestamp = self._current_timestamp()
             if timestamp < self.last_timestamp:
@@ -31,7 +31,7 @@ class SnowflakeGenerator:
             else:
                 self.sequence = 0
             self.last_timestamp = timestamp
-            return ((timestamp - self.epoch) << 22) | (self.machine_id << 12) | self.sequence
+            return str(((timestamp - self.epoch) << 22) | (self.machine_id << 12) | self.sequence)
 
 
 snowflake = SnowflakeGenerator()
