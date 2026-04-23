@@ -20,6 +20,10 @@ input {
   font: inherit;
 }
 
+a {
+  color: inherit;
+}
+
 button {
   border: none;
   border-radius: 12px;
@@ -149,7 +153,8 @@ h2 {
 }
 
 .empty,
-.error {
+.error,
+.success {
   margin-bottom: 16px;
   padding: 14px 16px;
   border-radius: 14px;
@@ -163,6 +168,11 @@ h2 {
 .error {
   background: rgba(224, 90, 114, 0.16);
   color: #ffb8c4;
+}
+
+.success {
+  background: rgba(72, 187, 120, 0.16);
+  color: #a7f3c0;
 }
 
 .hero-content {
@@ -242,15 +252,64 @@ h2 {
   text-decoration: underline;
 }
 
+.profile-actions {
+  display: flex;
+  align-items: center;
+}
+
+.profile-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  background: #28324e;
+  color: #fff;
+  text-decoration: none;
+}
+
+.profile-details {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 16px;
+  background: rgba(16, 24, 44, 0.9);
+}
+
+.profile-label {
+  color: #9eabc7;
+}
+
+.profile-value {
+  text-align: right;
+  color: #f5f7fb;
+  word-break: break-all;
+}
+
+.profile-subtitle {
+  margin-bottom: 16px;
+}
+
 @media (max-width: 700px) {
   .create-form,
   .item-edit,
   .item-actions,
-  .section-header {
+  .section-header,
+  .user-info,
+  .profile-item {
     flex-direction: column;
   }
 
-  button {
+  button,
+  .profile-link-button {
     width: 100%;
   }
 
@@ -261,5 +320,9 @@ h2 {
 
   .logout-btn {
     width: 100%;
+  }
+
+  .profile-value {
+    text-align: left;
   }
 }

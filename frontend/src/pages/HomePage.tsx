@@ -101,6 +101,10 @@ export default function HomePage() {
     navigate('/login')
   }
 
+  function handleOpenProfile() {
+    navigate('/profile')
+  }
+
   return (
     <main className="page">
       <section className="panel hero">
@@ -112,6 +116,9 @@ export default function HomePage() {
           </div>
           <div className="user-info">
             <span className="username">{nickname}</span>
+            <button type="button" className="secondary" onClick={handleOpenProfile}>
+              个人信息
+            </button>
             <button type="button" className="logout-btn" onClick={handleLogout}>
               退出登录
             </button>

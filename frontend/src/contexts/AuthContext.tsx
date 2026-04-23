@@ -1,10 +1,11 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
 
 interface AuthContextType {
   token: string | null
   username: string | null
   nickname: string | null
   login: (token: string, username: string, nickname: string) => void
+  updateProfile: (username: string, nickname: string) => void
   logout: () => void
 }
 
@@ -28,6 +29,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setNickname(newNickname)
   }, [])
 
+  const updateProfile = useCallback((newUsername: string, newNickname: string) => {
+    localStorage.setItem(USERNAME_KEY, newUsername)
+    localStorage.setItem(NICKNAME_KEY, newNickname)
+    setUsername(newUsername)
+    setNickname(newNickname)
+  }, [])
+
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USERNAME_KEY)
@@ -38,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ token, username, nickname, login, logout }}>
+    <AuthContext.Provider value={{ token, username, nickname, login, updateProfile, logout }}>
       {children}
     </AuthContext.Provider>
   )

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import AutoRegisterPage from '../pages/AutoRegisterPage'
 import HomePage from '../pages/HomePage'
 import LoginPage from '../pages/LoginPage'
+import ProfilePage from '../pages/ProfilePage'
 import RegisterPage from '../pages/RegisterPage'
 
 function ProtectedRoute() {
@@ -32,6 +33,7 @@ function AppRoutes() {
       </Route>
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Route>
     </Routes>
   )
