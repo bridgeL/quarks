@@ -1,6 +1,4 @@
-import asyncio
 import json
-import time
 
 import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -12,9 +10,6 @@ from app.services.ws_service import ws_manager
 from app.utils.constant import JWT_ALGORITHM, JWT_SECRET
 
 router = APIRouter()
-
-HEARTBEAT_INTERVAL = 30  # seconds
-HEARTBEAT_TIMEOUT = 40  # seconds
 
 
 async def validate_ws_token(token: str) -> UserEntity | None:
@@ -52,41 +47,17 @@ async def websocket_endpoint(websocket: WebSocket):
     logger.info(f"WS connected: user_id={user_id}")
     await ws_manager.connect(user_id, websocket)
 
-    last_activity = time.monotonic()
-    heartbeat_task = asyncio.create_task(_heartbeat_loop(websocket, user_id, lambda: last_activity))
-
     try:
         while True:
             data = await websocket.receive_text()
-            last_activity = time.monotonic()
-            try:
-                msg = json.loads(data)
-                if msg.get("type") == "pong":
-                    # Pong received, heartbeat will reset its timer via the closure
-                    pass
-            except json.JSONDecodeError:
-                pass
+            logger.info(f"WS <<< [{user_id}] {data}")
+            msg = json.loads(data)
+            if msg.get("type") == "ping":
+                pong = json.dumps({"type": "pong"})
+                logger.info(f"WS >>> [{user_id}] {pong}")
+                await websocket.send_text(pong)
     except WebSocketDisconnect:
         logger.debug(f"WS disconnected: user_id={user_id}")
     finally:
-        heartbeat_task.cancel()
         ws_manager.disconnect(user_id)
         logger.info(f"WS cleanup done: user_id={user_id}")
-
-
-async def _heartbeat_loop(websocket: WebSocket, user_id: str, get_last_activity: callable):
-    try:
-        while True:
-            await asyncio.sleep(HEARTBEAT_INTERVAL)
-            elapsed = time.monotonic() - get_last_activity()
-            if elapsed > HEARTBEAT_TIMEOUT:
-                logger.warning(f"WS heartbeat timeout: user_id={user_id}, elapsed={elapsed:.1f}s")
-                break
-            try:
-                await websocket.send_text(json.dumps({"type": "ping"}))
-            except Exception:
-                break
-    except asyncio.CancelledError:
-        pass
-    except Exception:
-        pass

@@ -1,9 +1,8 @@
 const WS_ORIGIN = import.meta.env.DEV ? 'ws://127.0.0.1:52000' : ''
 const WS_URL = `${WS_ORIGIN}/ws/connect`
 
-const HEARTBEAT_INTERVAL = 30000
-const HEARTBEAT_TIMEOUT = 40000
-const MAX_RECONNECT_DELAY = 30000
+const HEARTBEAT_INTERVAL = 20000
+const RECONNECT_INTERVAL = 3000
 
 const TOKEN_KEY = 'auth_token'
 
@@ -21,11 +20,9 @@ interface WsService {
 }
 
 let ws: WebSocket | null = null
-let shouldReconnect = false
-let reconnectDelay = 1000
-let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+let token: string | null = null
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null
-let heartbeatTimeoutTimer: ReturnType<typeof setTimeout> | null = null
+let reconnectTimer: ReturnType<typeof setInterval> | null = null
 
 const openHandlers: VoidHandler[] = []
 const messageHandlers: MessageHandler[] = []
@@ -36,78 +33,45 @@ function isLoggedIn(): boolean {
   return localStorage.getItem(TOKEN_KEY) !== null
 }
 
-function clearHeartbeat(): void {
+function clearTimers(): void {
   if (heartbeatTimer) {
     clearInterval(heartbeatTimer)
     heartbeatTimer = null
   }
-  if (heartbeatTimeoutTimer) {
-    clearTimeout(heartbeatTimeoutTimer)
-    heartbeatTimeoutTimer = null
+  if (reconnectTimer) {
+    clearInterval(reconnectTimer)
+    reconnectTimer = null
   }
 }
 
 function startHeartbeat(): void {
-  clearHeartbeat()
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer)
+  }
   heartbeatTimer = setInterval(() => {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'ping' }))
-      heartbeatTimeoutTimer = setTimeout(() => {
-        ws?.close()
-      }, HEARTBEAT_TIMEOUT)
+      const payload = JSON.stringify({ type: 'ping' })
+      console.log('[WS] >>>', payload)
+      ws.send(payload)
     }
   }, HEARTBEAT_INTERVAL)
 }
 
-function handleOpen(): void {
-  reconnectDelay = 1000
-  startHeartbeat()
-  openHandlers.forEach((h) => h())
-}
-
-function handleMessage(event: MessageEvent): void {
-  console.log('[WS] <<<', event.data)
-  try {
-    const msg = JSON.parse(event.data as string)
-    if (msg.type === 'ping') {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'pong' }))
-      }
-      return
-    }
-    messageHandlers.forEach((h) => h(msg))
-  } catch {
-    messageHandlers.forEach((h) => h(event.data))
-  }
-}
-
-function handleClose(): void {
-  clearHeartbeat()
-  ws = null
-  closeHandlers.forEach((h) => h())
-  if (shouldReconnect && isLoggedIn()) {
-    scheduleReconnect()
-  }
-}
-
-function handleError(event: Event): void {
-  errorHandlers.forEach((h) => h(event))
-}
-
-function scheduleReconnect(): void {
+function startReconnect(): void {
   if (reconnectTimer) {
-    clearTimeout(reconnectTimer)
+    clearInterval(reconnectTimer)
   }
-  reconnectTimer = setTimeout(() => {
-    const token = localStorage.getItem(TOKEN_KEY)
-    if (shouldReconnect && token && isLoggedIn()) {
-      connect(token)
+  reconnectTimer = setInterval(() => {
+    if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+      if (isLoggedIn() && token) {
+        connect(token)
+      }
     }
-  }, reconnectDelay)
-  reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY)
+  }, RECONNECT_INTERVAL)
 }
 
-function connect(token: string): void {
+function connect(newToken: string): void {
+  token = newToken
   if (ws) {
     ws.onopen = null
     ws.onmessage = null
@@ -116,22 +80,51 @@ function connect(token: string): void {
     if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
       ws.close()
     }
+    ws = null
   }
-  shouldReconnect = true
-  ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(token)}`)
-  ws.onopen = handleOpen
-  ws.onmessage = handleMessage
-  ws.onclose = handleClose
-  ws.onerror = handleError
+  ws = new WebSocket(`${WS_URL}?token=${encodeURIComponent(newToken)}`)
+
+  ws.onopen = () => {
+    console.log('[WS] connected')
+    startHeartbeat()
+    openHandlers.forEach((h) => h())
+  }
+
+  ws.onmessage = (event) => {
+    console.log('[WS] <<<', event.data)
+    try {
+      const msg = JSON.parse(event.data as string)
+      if (msg.type === 'ping') {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          const pong = JSON.stringify({ type: 'pong' })
+          console.log('[WS] >>>', pong)
+          ws.send(pong)
+        }
+        return
+      }
+      messageHandlers.forEach((h) => h(msg))
+    } catch {
+      messageHandlers.forEach((h) => h(event.data))
+    }
+  }
+
+  ws.onclose = () => {
+    console.log('[WS] closed')
+    clearTimers()
+    ws = null
+    closeHandlers.forEach((h) => h())
+    if (isLoggedIn()) {
+      startReconnect()
+    }
+  }
+
+  ws.onerror = (event) => {
+    errorHandlers.forEach((h) => h(event))
+  }
 }
 
 function disconnect(): void {
-  shouldReconnect = false
-  if (reconnectTimer) {
-    clearTimeout(reconnectTimer)
-    reconnectTimer = null
-  }
-  clearHeartbeat()
+  clearTimers()
   if (ws) {
     ws.onopen = null
     ws.onmessage = null
@@ -140,6 +133,7 @@ function disconnect(): void {
     ws.close()
     ws = null
   }
+  token = null
 }
 
 function send(data: unknown): void {
