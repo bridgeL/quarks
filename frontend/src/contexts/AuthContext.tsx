@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
+import wsService from '../services/wsService'
 
 interface AuthContextType {
   token: string | null
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(newToken)
     setUsername(newUsername)
     setNickname(newNickname)
+    wsService.connect(newToken)
   }, [])
 
   const updateProfile = useCallback((newUsername: string, newNickname: string) => {
@@ -37,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(() => {
+    wsService.disconnect()
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USERNAME_KEY)
     localStorage.removeItem(NICKNAME_KEY)
