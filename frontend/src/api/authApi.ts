@@ -1,6 +1,7 @@
 import { apiRequest, setToken } from './base'
 
-const BASE_URL = 'http://127.0.0.1:52000/auth'
+const API_ORIGIN = import.meta.env.DEV ? 'http://127.0.0.1:52000' : ''
+const BASE_URL = `${API_ORIGIN}/auth`
 
 export interface LoginRequest {
   username: string
@@ -8,7 +9,7 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  username: string
+  nickname: string
   password: string
 }
 
@@ -28,6 +29,8 @@ export interface CurrentUserResponse {
   username: string
   nickname: string
   is_auto_registered: boolean
+  created_at: number
+  last_login_at: number
 }
 
 export interface UpdateProfileRequest {

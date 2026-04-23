@@ -1,12 +1,6 @@
 from pydantic import BaseModel
 
 
-class RegisterRequest(BaseModel):
-    username: str
-    password: str
-    nickname: str | None = None
-
-
 class LoginRequest(BaseModel):
     username: str
     password: str
@@ -41,3 +35,5 @@ class CurrentUserResponse(BaseModel):
     username: str
     nickname: str
     is_auto_registered: bool
+    created_at: int
+    last_login_at: int

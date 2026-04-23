@@ -20,7 +20,7 @@ def list_tests(
     db: Session = Depends(get_db),
     current_user: UserEntity = Depends(get_current_user),
 ):
-    tests: list[TestEntity] = test_service.list_tests(db)
+    tests: list[TestEntity] = test_service.list_tests(db, current_user.id)
     return [NameResponse(id=test.id, name=test.name) for test in tests]
 
 
@@ -30,7 +30,7 @@ def create_test(
     db: Session = Depends(get_db),
     current_user: UserEntity = Depends(get_current_user),
 ):
-    test = test_service.create(db, request.name)
+    test = test_service.create(db, current_user.id, request.name)
     return NameResponse(id=test.id, name=test.name)
 
 
@@ -40,7 +40,7 @@ def update_test(
     db: Session = Depends(get_db),
     current_user: UserEntity = Depends(get_current_user),
 ):
-    test = test_service.update(db, request.id, request.name)
+    test = test_service.update(db, current_user.id, request.id, request.name)
     if test is None:
         raise HTTPException(status_code=404, detail="Data not found")
     return NameResponse(id=test.id, name=test.name)
@@ -52,7 +52,7 @@ def delete_test(
     db: Session = Depends(get_db),
     current_user: UserEntity = Depends(get_current_user),
 ):
-    test = test_service.delete(db, request.id)
+    test = test_service.delete(db, current_user.id, request.id)
     if test is None:
         raise HTTPException(status_code=404, detail="Data not found")
     return NameResponse(id=test.id, name=test.name)

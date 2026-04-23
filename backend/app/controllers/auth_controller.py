@@ -7,7 +7,6 @@ from app.schemas.user_schema import (
     AutoRegisterResponse,
     CurrentUserResponse,
     LoginRequest,
-    RegisterRequest,
     TokenResponse,
     UpdateCurrentUserRequest,
 )
@@ -15,15 +14,6 @@ from app.services.user_service import user_service
 from app.utils.dependencies import get_current_user, get_db
 
 router = APIRouter(prefix="/auth")
-
-
-@router.post("/register", response_model=TokenResponse)
-def register(request: RegisterRequest, db: Session = Depends(get_db)):
-    user, error = user_service.register(db, request.username, request.password, request.nickname)
-    if error:
-        raise HTTPException(status_code=400, detail=error)
-    token = user_service.create_token(user.id)
-    return TokenResponse(access_token=token, username=user.username, nickname=user.nickname)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -49,7 +39,15 @@ def get_current_user_profile(current_user: UserEntity = Depends(get_current_user
         username=current_user.username,
         nickname=current_user.nickname,
         is_auto_registered=current_user.is_auto_registered,
+        created_at=current_user.created_at,
+        last_login_at=current_user.last_login_at,
     )
+
+
+@router.get("/clean-guest")
+def clean_guest_users(db: Session = Depends(get_db)):
+    deleted_count = user_service.cleanup_expired_guest_users(db)
+    return {"deleted_count": deleted_count}
 
 
 @router.post("/update", response_model=CurrentUserResponse)
@@ -72,4 +70,6 @@ def update_current_user_profile(
         username=user.username,
         nickname=user.nickname,
         is_auto_registered=user.is_auto_registered,
+        created_at=user.created_at,
+        last_login_at=user.last_login_at,
     )

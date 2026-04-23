@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, String
+from sqlalchemy import BigInteger, Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -13,3 +13,5 @@ class UserEntity(Base):
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
     salt: Mapped[str] = mapped_column(String, nullable=False)
     is_auto_registered: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    last_login_at: Mapped[int] = mapped_column(BigInteger, nullable=False)

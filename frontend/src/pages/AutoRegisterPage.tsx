@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { autoRegister } from '../api/authApi'
 import { useAuth } from '../contexts/AuthContext'
@@ -48,7 +48,6 @@ export default function AutoRegisterPage() {
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
               placeholder="输入昵称（可选）"
-              autoComplete="nickname"
             />
           </div>
 
@@ -56,6 +55,10 @@ export default function AutoRegisterPage() {
             {loading ? '创建中...' : '创建并进入'}
           </button>
         </form>
+
+        <p className="auth-footer">
+          想使用已有账号？<Link to="/login">返回登录</Link>
+        </p>
       </section>
     </main>
   )

@@ -1,13 +1,14 @@
 import hashlib
 import secrets
 import string
+import time
 from datetime import datetime, timedelta, timezone
 
 import jwt
 from sqlalchemy.orm import Session
 
 from app.entities.user_entity import UserEntity
-from app.services.snowflake import snowflake
+from app.utils.snowflake import snowflake
 from app.utils.constant import JWT_ALGORITHM, JWT_EXPIRE_HOURS, JWT_SECRET
 
 
@@ -16,6 +17,9 @@ class UserService:
         expire = datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRE_HOURS)
         payload = {"sub": user_id, "exp": expire}
         return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+    def _current_timestamp_ms(self) -> int:
+        return int(time.time() * 1000)
 
     def _generate_salt(self) -> str:
         return secrets.token_hex(16)
@@ -31,24 +35,6 @@ class UserService:
         user.salt = salt
         user.password_hash = self._hash_password(password, salt)
 
-    def register(self, db: Session, username: str, password: str, nickname: str | None = None) -> tuple[UserEntity | None, str | None]:
-        existing = db.query(UserEntity).filter(UserEntity.username == username).first()
-        if existing:
-            return None, "Username already exists"
-
-        user = UserEntity(
-            id=snowflake.generate(),
-            username=username,
-            nickname=nickname or username,
-            password_hash="",
-            salt="",
-        )
-        self._set_password(user, password)
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        return user, None
-
     def verify(self, db: Session, username: str, password: str) -> UserEntity | None:
         user = db.query(UserEntity).filter(UserEntity.username == username).first()
         if not user:
@@ -57,6 +43,9 @@ class UserService:
         if not self._verify_password(user, password):
             return None
 
+        user.last_login_at = self._current_timestamp_ms()
+        db.commit()
+        db.refresh(user)
         return user
 
     def _generate_guest_username(self, db: Session) -> str:
@@ -70,6 +59,7 @@ class UserService:
     def auto_register(self, db: Session, nickname: str | None = None) -> UserEntity:
         username = self._generate_guest_username(db)
         password = secrets.token_hex(16)
+        now = self._current_timestamp_ms()
 
         user = UserEntity(
             id=snowflake.generate(),
@@ -78,12 +68,31 @@ class UserService:
             password_hash="",
             salt="",
             is_auto_registered=True,
+            created_at=now,
+            last_login_at=now,
         )
         self._set_password(user, password)
         db.add(user)
         db.commit()
         db.refresh(user)
         return user
+
+    def cleanup_expired_guest_users(self, db: Session) -> int:
+        expire_before = self._current_timestamp_ms() - 24 * 60 * 60 * 1000
+        expired_users = (
+            db.query(UserEntity)
+            .filter(UserEntity.is_auto_registered.is_(True), UserEntity.created_at < expire_before)
+            .all()
+        )
+
+        deleted_count = len(expired_users)
+        for user in expired_users:
+            db.delete(user)
+
+        if deleted_count:
+            db.commit()
+
+        return deleted_count
 
     def update_current_user(
         self,

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { getMe } from '../api/authApi'
 import { createTest, deleteTest, listTests, updateTest } from '../api/testApi'
 import type { TestItem } from '../types'
 import { useAuth } from '../contexts/AuthContext'
@@ -96,7 +97,19 @@ export default function HomePage() {
     }
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    try {
+      const currentUser = await getMe()
+      if (currentUser.is_auto_registered) {
+        const confirmed = window.confirm('当前是游客账号，退出登录后将无法找回该账号，确定继续退出吗？')
+        if (!confirmed) {
+          return
+        }
+      }
+    } catch {
+      return
+    }
+
     logout()
     navigate('/login')
   }
@@ -119,7 +132,7 @@ export default function HomePage() {
             <button type="button" className="secondary" onClick={handleOpenProfile}>
               个人信息
             </button>
-            <button type="button" className="logout-btn" onClick={handleLogout}>
+            <button type="button" className="logout-btn" onClick={() => void handleLogout()}>
               退出登录
             </button>
           </div>

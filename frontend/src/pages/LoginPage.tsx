@@ -77,9 +77,6 @@ export default function LoginPage() {
         </form>
 
         <p className="auth-footer">
-          还没有账号？<Link to="/register">注册</Link>
-        </p>
-        <p className="auth-footer">
           想快速体验？<Link to="/auto-register">游客账号</Link>
         </p>
       </section>

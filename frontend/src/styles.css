@@ -55,6 +55,85 @@ input {
   color: #f5f7fb;
 }
 
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: #f5f7fb;
+  -webkit-box-shadow: 0 0 0 1000px #10182c inset;
+  box-shadow: 0 0 0 1000px #10182c inset;
+  caret-color: #f5f7fb;
+}
+
+input:autofill {
+  background: #10182c;
+  color: #f5f7fb;
+}
+
+.editable-input {
+  background: #10182c;
+  border-color: #32405f;
+}
+
+.editable-input:-webkit-autofill,
+.editable-input:-webkit-autofill:hover,
+.editable-input:-webkit-autofill:focus,
+.editable-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #f5f7fb;
+  -webkit-box-shadow: 0 0 0 1000px #10182c inset;
+  box-shadow: 0 0 0 1000px #10182c inset;
+  caret-color: #f5f7fb;
+}
+
+.editable-input:autofill {
+  background: #10182c;
+  color: #f5f7fb;
+}
+
+.readonly-input {
+  background: #10182c;
+  border-color: #32405f;
+  color: #f5f7fb;
+}
+
+.readonly-input:focus {
+  outline: none;
+}
+
+.readonly-input:-webkit-autofill,
+.readonly-input:-webkit-autofill:hover,
+.readonly-input:-webkit-autofill:focus,
+.readonly-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #f5f7fb;
+  -webkit-box-shadow: 0 0 0 1000px #10182c inset;
+  box-shadow: 0 0 0 1000px #10182c inset;
+  caret-color: transparent;
+}
+
+.readonly-input:autofill {
+  background: #10182c;
+  color: #f5f7fb;
+}
+
+.readonly-input-wrapper {
+  position: relative;
+}
+
+.readonly-input-wrapper::after {
+  content: '🔒';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.readonly-input-wrapper .readonly-input {
+  padding-right: 42px;
+}
+
 #root {
   width: 100%;
 }

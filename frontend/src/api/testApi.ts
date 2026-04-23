@@ -1,7 +1,8 @@
 import { apiRequest } from './base'
 import type { CreateTestRequest, DeleteTestRequest, TestItem, UpdateTestRequest } from '../types'
 
-const BASE_URL = 'http://127.0.0.1:52000/test'
+const API_ORIGIN = import.meta.env.DEV ? 'http://127.0.0.1:52000' : ''
+const BASE_URL = `${API_ORIGIN}/test`
 
 export async function listTests(): Promise<TestItem[]> {
   const result = await apiRequest<TestItem[]>(`${BASE_URL}/list`)
