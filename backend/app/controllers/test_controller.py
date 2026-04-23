@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.controllers.auth_controller import get_current_user
-from app.db.database import get_db
+from app.utils.dependencies import get_current_user, get_db
 from app.entities.test_entity import TestEntity
 from app.entities.user_entity import UserEntity
 from app.schemas.test_schema import CreateTestRequest, DeleteTestRequest, NameResponse, UpdateTestRequest
