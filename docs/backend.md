@@ -2,12 +2,11 @@
 
 ## 概览
 
-后端位于 `backend/`，是一个基于 FastAPI 的本地服务。当前后端不再只是认证与 Test CRUD 接口集合，而是已经扩展为同时提供认证、Test 资源、房间系统、WebSocket 实时连接以及前端静态资源托管的统一服务。
+后端位于 `backend/`，是一个基于 FastAPI 的本地服务。当前后端主要提供认证、房间系统、WebSocket 实时连接以及前端静态资源托管能力。
 
 当前主要职责包括：
 
 - 认证与用户资料：登录、游客账号创建、当前用户资料查询、资料更新、token 校验、游客账号清理
-- Test 资源管理：按当前登录用户隔离的列表、创建、更新、删除
 - 房间系统：创建房间、列出房间、加入/离开房间、获取房间详情、开始/结束游戏
 - WebSocket 实时通信：维护在线连接并向房间成员推送状态变化
 - 前端静态资源托管：直接提供 `backend/dist/` 中的前端构建产物
@@ -47,21 +46,17 @@ backend/
    │  ├─ auth_controller.py
    │  ├─ room_controller.py
    │  ├─ static_controller.py
-   │  ├─ test_controller.py
    │  └─ ws_controller.py
    ├─ db/
    │  └─ database.py
    ├─ entities/
    │  ├─ room_entity.py
-   │  ├─ test_entity.py
    │  └─ user_entity.py
    ├─ schemas/
    │  ├─ room_schema.py
-   │  ├─ test_schema.py
    │  └─ user_schema.py
    ├─ services/
    │  ├─ room_server.py
-   │  ├─ test_service.py
    │  ├─ user_service.py
    │  └─ ws_service.py
    └─ utils/
@@ -80,7 +75,7 @@ backend/
 - `backend/app/services/room_server.py`：内存态房间核心逻辑
 - `backend/app/services/ws_service.py`：WebSocket 连接管理器
 - `backend/app/utils/id_generator.py`：短 ID 生成器，供房间号使用
-- `backend/app/utils/snowflake.py`：字符串雪花 ID 生成器，供数据库主键使用
+- `backend/app/utils/snowflake.py`：当前仍保留在项目中，但不再被现有业务路径直接使用
 
 ## 启动入口
 
@@ -105,7 +100,7 @@ backend/
 - 在应用启动时执行自动建表
 - 在应用启动时清理过期游客账号
 - 配置 CORS
-- 注册认证、Test、房间、WebSocket、静态资源相关路由
+- 注册认证、房间、WebSocket、静态资源相关路由
 - 调用 `register_static(app)` 挂载 `dist/assets`
 
 当前 CORS 允许的前端开发来源：
@@ -150,23 +145,6 @@ backend/
 - 更新失败返回 `400`
 
 当前后端没有提供普通注册接口。
-
-### `test_controller.py`
-
-负责 `/test` 下的资源接口：
-
-- `GET /test/health`
-- `GET /test/list`
-- `POST /test/create`
-- `POST /test/update`
-- `POST /test/delete`
-
-当前行为：
-
-- `health` 是公开接口
-- 其余接口都依赖 `get_current_user`
-- 所有 Test 数据都按当前用户 `id` 隔离
-- 更新或删除不存在的数据时返回 `404`
 
 ### `room_controller.py`
 
@@ -222,7 +200,6 @@ backend/
 - `GET /{full_path:path}` 会把非 API/WS 路径回退到 `index.html`
 - 以下前缀不会走 SPA fallback：
   - `auth/`
-  - `test/`
   - `assets/`
   - `ws/`
   - `room/`
@@ -259,21 +236,6 @@ backend/
 - Token 带 `exp` 过期时间
 - 用户时间字段使用毫秒时间戳
 - 启动时或手动调用清理接口时，会删除创建超过 24 小时的游客账号
-
-### `test_service.py`
-
-负责 Test 资源 CRUD：
-
-- 查询当前用户 Test 列表
-- 为当前用户创建 Test
-- 更新当前用户自己的 Test
-- 删除当前用户自己的 Test
-
-当前实现细节：
-
-- `test` 表带 `user_id`
-- 查询、更新、删除都同时使用 `id` 和 `user_id`
-- `id` 使用 Snowflake 生成字符串主键
 
 ### `room_server.py`
 
@@ -345,19 +307,6 @@ backend/
 - `username` 唯一且带索引
 - 时间字段都使用毫秒时间戳
 
-### `test_entity.py`
-
-对应 `test` 表，字段包括：
-
-- `id: str`
-- `name`
-- `user_id: str`
-
-说明：
-
-- `user_id` 用于标记数据所属用户
-- 访问时通过该字段做用户隔离
-
 ### `room_entity.py`
 
 这是房间的内存实体，不对应数据库表，而是一个 dataclass。
@@ -402,19 +351,6 @@ backend/
   - `created_at`
   - `last_login_at`
 
-### `test_schema.py`
-
-主要模型包括：
-
-- `NameResponse`
-- `CreateTestRequest`
-- `UpdateTestRequest`
-- `DeleteTestRequest`
-
-说明：
-
-- 对前端暴露的 Test 数据仅包含 `id` 和 `name`
-
 ### `room_schema.py`
 
 主要模型包括：
@@ -449,6 +385,11 @@ backend/
 - 暴露 `engine`、`SessionLocal`、`Base`
 
 由于数据库 URL 是相对路径，通常建议在 `backend/` 目录下运行服务。
+
+说明：
+
+- 当前 `Base.metadata.create_all()` 只会为仍然导入的 ORM 实体建表
+- 已移除的 test 模块不会再参与应用运行路径
 
 ## 6. utils：常量、依赖与通用工具
 
@@ -497,10 +438,7 @@ backend/
 
 - 生成字符串雪花 ID
 
-当前主要用于：
-
-- `users.id`
-- `test.id`
+当前工具文件仍保留在项目中，但不再被现有接口直接使用。
 
 ### `logging.py`
 
@@ -521,7 +459,7 @@ backend/
 5. 注册 HTTP、WS 与静态资源路由
 6. 请求进入 controller 层
 7. controller 根据需要注入 `db` 和 `current_user`
-8. service 层处理数据库逻辑、房间逻辑或 WS 推送
+8. service 层处理用户逻辑、房间逻辑或 WS 推送
 9. schema 将数据序列化为接口响应
 10. 如果访问的是前端路由，则由静态控制器返回 `index.html`
 
@@ -535,14 +473,6 @@ backend/
 - 查看当前用户资料
 - 更新昵称与密码
 - 清理过期游客账号
-
-### Test 资源相关
-
-- 健康检查
-- 获取当前用户自己的列表
-- 创建当前用户自己的记录
-- 更新当前用户自己的记录
-- 删除当前用户自己的记录
 
 ### 房间相关
 

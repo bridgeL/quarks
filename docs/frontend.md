@@ -2,12 +2,12 @@
 
 ## 概览
 
-前端位于 `frontend/`，是一个基于 Vite + React + TypeScript 的单页应用（SPA）。当前前端不再只是一个简单的 Test CRUD 页面，而是已经扩展为包含认证、主页、房间大厅、房间页、个人信息页以及 WebSocket 实时同步能力的完整客户端。
+前端位于 `frontend/`，是一个基于 Vite + React + TypeScript 的单页应用（SPA）。当前前端主要包含认证、主页、房间大厅、房间页、个人信息页以及 WebSocket 实时同步能力。
 
 当前主要页面能力包括：
 
 - 认证流程：账号密码登录、游客账号创建
-- 首页：Test 资源管理入口、房间大厅入口、个人信息入口、退出登录
+- 主页：作为登录后的默认入口，当前暂时留空，后续用于承载新的业务模块
 - 房间大厅：创建房间、输入房间号加入房间、查看在线房间列表
 - 房间页：加入/离开房间、查看房间在线成员、开始/结束游戏
 - 个人信息页：查看账号信息、修改昵称、设置或修改密码
@@ -43,8 +43,7 @@ frontend/
    ├─ api/
    │  ├─ base.ts
    │  ├─ authApi.ts
-   │  ├─ roomApi.ts
-   │  └─ testApi.ts
+   │  └─ roomApi.ts
    ├─ contexts/
    │  └─ AuthContext.tsx
    ├─ pages/
@@ -69,6 +68,7 @@ frontend/
 - `src/contexts/AuthContext.tsx`：维护 token / username / nickname，并负责连接/断开 WebSocket
 - `src/services/wsService.ts`：统一封装 WebSocket 心跳、重连和消息派发
 - `src/api/roomApi.ts`：房间相关 HTTP API
+- `src/pages/HomePage.tsx`：登录后默认首页，当前保留为空白占位页
 - `src/pages/LobbyPage.tsx`：房间大厅页面
 - `src/pages/RoomPage.tsx`：房间实时页
 
@@ -183,21 +183,17 @@ React 启动入口，负责：
 
 这是当前登录后的默认首页。
 
-主要能力：
+当前能力：
 
-- 拉取当前用户自己的 Test 列表
-- 创建 Test
-- 编辑 Test
-- 删除 Test
-- 打开个人信息页
-- 打开房间大厅
-- 退出登录
+- 显示当前用户昵称
+- 提供进入个人信息页按钮
+- 提供进入房间大厅按钮
+- 提供退出登录按钮
+- 页面主体区域暂时留空，作为后续业务功能占位
 
 此外：
 
-- 页面顶部显示当前用户昵称
 - 如果当前账号是游客账号，退出前会先请求 `/auth/me`，并弹出不可找回提示
-- Test 列表会按 `id` 倒序显示
 
 ### `LobbyPage.tsx`
 
@@ -363,19 +359,6 @@ React 启动入口，负责：
 
 开发环境走 `http://127.0.0.1:52000/room`，生产环境走同源 `/room`。
 
-### `testApi.ts`
-
-负责 Test 资源相关接口。
-
-当前能力包括：
-
-- 获取列表
-- 创建
-- 更新
-- 删除
-
-开发环境走 `http://127.0.0.1:52000/test`，生产环境走同源 `/test`。
-
 ## 5. services：客户端服务层
 
 位于 `frontend/src/services/`。
@@ -401,20 +384,7 @@ React 启动入口，负责：
 - 收到服务端 `ping` 时自动回复 `pong`
 - 当前房间页通过 `setMessageHandler()` 使用它
 
-## 6. types：类型定义层
-
-位于 `frontend/src/types.ts`。
-
-当前定义的是 Test 相关基础类型：
-
-- `TestItem`
-- `CreateTestRequest`
-- `UpdateTestRequest`
-- `DeleteTestRequest`
-
-房间相关类型则定义在 `api/roomApi.ts` 中。
-
-## 7. styles：样式层
+## 6. styles：样式层
 
 位于 `frontend/src/styles.css`。
 
@@ -427,7 +397,7 @@ React 启动入口，负责：
 样式已经覆盖的核心场景包括：
 
 - 认证页
-- 首页 Test 列表
+- 首页占位区
 - 房间大厅卡片列表
 - 房间在线用户卡片
 - 个人信息页
@@ -467,19 +437,12 @@ React 启动入口，负责：
 - 后端通过 WS 推送 `user_joined`、`user_left`、`game_started`、`game_ended`
 - 前端据此更新房间内本地状态
 
-### Test 数据流
-
-- 首页加载时调用 `testApi.listTests()`
-- 创建、更新、删除后会再次请求列表刷新 UI
-- 所有请求都会自动附加 JWT Bearer Token
-- 后端基于当前用户做数据隔离
-
 ## 与后端的耦合点
 
 当前前后端的主要耦合点包括：
 
 - 开发环境前端默认请求 `127.0.0.1:52000`
-- 生产环境默认同源请求 `/auth`、`/test`、`/room`
+- 生产环境默认同源请求 `/auth`、`/room`
 - WebSocket 连接地址为 `/ws/connect`
 - 前端构建产物输出到 `backend/dist`
 - 前端使用 `BrowserRouter`，依赖后端提供 SPA fallback
