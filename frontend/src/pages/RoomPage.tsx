@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { endGame, getRoom, joinRoom, leaveRoom, startGame, type RoomPlayerInfo, type RoomResponse } from '../api/roomApi'
+import { endGame, getRoom, joinRoom, leaveRoom, startGame, type RoomResponse } from '../api/roomApi'
 import { useAuth } from '../contexts/AuthContext'
 import wsService from '../services/wsService'
+import PlayerProgressBar from '../components/PlayerProgressBar'
+import UserCard from '../components/UserCard'
 
 const TARGET_SCORE = 7
 const GAME_EMOJIS = ['🍎', '⚡', '🛡️'] as const
@@ -159,36 +161,14 @@ export default function RoomPage() {
             {gamePlayers.map((player, index) => {
               const emojiStats = buildEmojiStats(index)
               const total = emojiStats.reduce((sum, item) => sum + item.value, 0)
-              const progressPercent = Math.min((total / TARGET_SCORE) * 100, 100)
               return (
-                <article key={player.player_id} className="game-progress-card">
-                  <div className="game-progress-header">
-                    <div className="game-progress-user">
-                      <span className="game-progress-name">{player.nickname}</span>
-                      {player.nickname === nickname ? <span className="user-card-you">（你）</span> : null}
-                      {player.left_at ? <span className="user-card-guest-badge">已离场</span> : null}
-                    </div>
-                    <span className="game-progress-username">{player.username}</span>
-                  </div>
-                  <div className="game-progress-row">
-                    <div className="game-emoji-group">
-                      {emojiStats.map((item) => (
-                        <span key={`${player.player_id}-${item.emoji}`} className="game-emoji-pill">
-                          <span className="game-emoji-icon">{item.emoji}</span>
-                          <span className="game-emoji-value">{item.value}</span>
-                        </span>
-                      ))}
-                    </div>
-                    <div className="game-score-box">
-                      <span className="game-score-current">{total}</span>
-                      <span className="game-score-divider">/</span>
-                      <span className="game-score-target">{TARGET_SCORE}</span>
-                    </div>
-                  </div>
-                  <div className="game-progress-track">
-                    <div className="game-progress-fill" style={{ width: `${progressPercent}%` }} />
-                  </div>
-                </article>
+                <PlayerProgressBar
+                  key={player.player_id}
+                  player={player}
+                  currentUser={nickname ?? ''}
+                  emojiStats={emojiStats}
+                  total={total}
+                />
               )
             })}
           </div>
@@ -200,19 +180,7 @@ export default function RoomPage() {
         {error ? <div className="error">{error}</div> : null}
         <div className="user-list-grid">
           {room.users.map((user) => (
-            <article key={user.user_id} className={`user-card${user.is_auto_registered ? ' user-card-guest' : ''}`}>
-              <div className={`user-card-avatar${user.is_auto_registered ? ' user-card-avatar-guest' : ''}`}>
-                {user.nickname.charAt(0).toUpperCase()}
-              </div>
-              <div className="user-card-info">
-                <div className="user-card-name">
-                  {user.nickname}
-                  {user.nickname === nickname && <span className="user-card-you">（你）</span>}
-                  {user.is_auto_registered && <span className="user-card-guest-badge">游客</span>}
-                </div>
-                <div className="user-card-username">{user.username}</div>
-              </div>
-            </article>
+            <UserCard key={user.user_id} user={user} currentUserNickname={nickname ?? ''} />
           ))}
         </div>
       </section>
@@ -221,12 +189,17 @@ export default function RoomPage() {
 }
 
 function buildEmojiStats(userIndex: number): Array<{ emoji: string; value: number }> {
-  const base = userIndex % TARGET_SCORE
-  const values = [
-    Math.min(base + 1, 3),
-    Math.min(Math.max(base - 1, 0), 2),
-    Math.min(Math.max(base - 3, 0), 2),
+  const presets = [
+    { apple: 3, lightning: 1, shield: 1 },
+    { apple: 2, lightning: 2, shield: 0 },
+    { apple: 1, lightning: 1, shield: 2 },
+    { apple: 3, lightning: 0, shield: 1 },
+    { apple: 2, lightning: 2, shield: 2 },
   ]
-
-  return GAME_EMOJIS.map((emoji, index) => ({ emoji, value: values[index] ?? 0 }))
+  const preset = presets[userIndex % presets.length]
+  return [
+    { emoji: GAME_EMOJIS[0], value: preset.apple },
+    { emoji: GAME_EMOJIS[1], value: preset.lightning },
+    { emoji: GAME_EMOJIS[2], value: preset.shield },
+  ]
 }
