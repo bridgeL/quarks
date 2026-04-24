@@ -32,6 +32,22 @@ export interface RoomUserInfo {
   is_auto_registered: boolean
 }
 
+export interface RoomPlayerInfo {
+  player_id: string
+  user_id: string
+  username: string
+  nickname: string
+  is_auto_registered: boolean
+  left_at: number | null
+}
+
+export interface RoomGameInfo {
+  game_id: string
+  room_id: string
+  started_at: number
+  players: RoomPlayerInfo[]
+}
+
 export interface RoomResponse {
   room_id: string
   name: string
@@ -39,6 +55,7 @@ export interface RoomResponse {
   created_at: number
   status: string
   users: RoomUserInfo[]
+  game: RoomGameInfo | null
 }
 
 export interface JoinLeaveResponse {

@@ -12,6 +12,22 @@ class RoomUserInfo(BaseModel):
     is_auto_registered: bool
 
 
+class RoomPlayerInfo(BaseModel):
+    player_id: str
+    user_id: str
+    username: str
+    nickname: str
+    is_auto_registered: bool
+    left_at: int | None = None
+
+
+class RoomGameInfo(BaseModel):
+    game_id: str
+    room_id: str
+    started_at: int
+    players: list[RoomPlayerInfo]
+
+
 class RoomResponse(BaseModel):
     room_id: str
     name: str
@@ -19,6 +35,7 @@ class RoomResponse(BaseModel):
     created_at: int
     status: str
     users: list[RoomUserInfo]
+    game: RoomGameInfo | None = None
 
 
 class RoomListItem(BaseModel):

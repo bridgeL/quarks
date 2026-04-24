@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-import { getRoom, joinRoom, leaveRoom, startGame, endGame, type RoomResponse } from '../api/roomApi'
-import wsService from '../services/wsService'
+import { endGame, getRoom, joinRoom, leaveRoom, startGame, type RoomPlayerInfo, type RoomResponse } from '../api/roomApi'
 import { useAuth } from '../contexts/AuthContext'
+import wsService from '../services/wsService'
+
+const TARGET_SCORE = 7
+const GAME_EMOJIS = ['🍎', '⚡', '🛡️'] as const
 
 export default function RoomPage() {
   const { room_id } = useParams<{ room_id: string }>()
@@ -16,10 +19,12 @@ export default function RoomPage() {
   const roomRef = useRef<RoomResponse | null>(null)
   roomRef.current = room
 
-  async function loadRoom() {
+  async function loadRoom(options?: { join?: boolean }) {
     if (!room_id) return
     try {
-      await joinRoom(room_id)
+      if (options?.join !== false) {
+        await joinRoom(room_id)
+      }
       const data = await getRoom(room_id)
       setRoom(data)
       roomRef.current = data
@@ -37,26 +42,9 @@ export default function RoomPage() {
     async function init() {
       await loadRoom()
       wsService.setMessageHandler((data) => {
-        const msg = data as { type: string; user_id?: string; username?: string; nickname?: string; is_auto_registered?: boolean }
-        if (msg.type === 'user_joined') {
-          setRoom((prev) => {
-            if (!prev) return prev
-            return {
-              ...prev,
-              users: [
-                ...prev.users.filter((u) => u.user_id !== msg.user_id),
-                { user_id: msg.user_id!, username: msg.username!, nickname: msg.nickname!, is_auto_registered: msg.is_auto_registered! },
-              ],
-            }
-          })
-        } else if (msg.type === 'user_left') {
-          setRoom((prev) =>
-            prev ? { ...prev, users: prev.users.filter((u) => u.user_id !== msg.user_id) } : prev
-          )
-        } else if (msg.type === 'game_started') {
-          setRoom((prev) => prev ? { ...prev, status: 'playing' } : prev)
-        } else if (msg.type === 'game_ended') {
-          setRoom((prev) => prev ? { ...prev, status: 'preparing' } : prev)
+        const msg = data as { type: string }
+        if (msg.type === 'user_joined' || msg.type === 'user_left' || msg.type === 'game_started' || msg.type === 'game_ended') {
+          void loadRoom({ join: false })
         }
       })
     }
@@ -81,6 +69,7 @@ export default function RoomPage() {
     if (!room_id) return
     try {
       await startGame(room_id)
+      await loadRoom({ join: false })
     } catch (err) {
       setError(err instanceof Error ? err.message : '开始游戏失败')
     }
@@ -90,6 +79,7 @@ export default function RoomPage() {
     if (!room_id) return
     try {
       await endGame(room_id)
+      await loadRoom({ join: false })
     } catch (err) {
       setError(err instanceof Error ? err.message : '结束游戏失败')
     }
@@ -124,6 +114,8 @@ export default function RoomPage() {
     )
   }
 
+  const gamePlayers = room.game?.players ?? []
+
   return (
     <main className="page">
       <section className="panel hero">
@@ -157,6 +149,52 @@ export default function RoomPage() {
         </div>
       </section>
 
+      {room.status === 'playing' ? (
+        <section className="panel">
+          <div className="section-header">
+            <h2>游戏区域</h2>
+            <span className="game-target">目标 {TARGET_SCORE}</span>
+          </div>
+          <div className="game-progress-list">
+            {gamePlayers.map((player, index) => {
+              const emojiStats = buildEmojiStats(index)
+              const total = emojiStats.reduce((sum, item) => sum + item.value, 0)
+              const progressPercent = Math.min((total / TARGET_SCORE) * 100, 100)
+              return (
+                <article key={player.player_id} className="game-progress-card">
+                  <div className="game-progress-header">
+                    <div className="game-progress-user">
+                      <span className="game-progress-name">{player.nickname}</span>
+                      {player.nickname === nickname ? <span className="user-card-you">（你）</span> : null}
+                      {player.left_at ? <span className="user-card-guest-badge">已离场</span> : null}
+                    </div>
+                    <span className="game-progress-username">{player.username}</span>
+                  </div>
+                  <div className="game-progress-row">
+                    <div className="game-emoji-group">
+                      {emojiStats.map((item) => (
+                        <span key={`${player.player_id}-${item.emoji}`} className="game-emoji-pill">
+                          <span className="game-emoji-icon">{item.emoji}</span>
+                          <span className="game-emoji-value">{item.value}</span>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="game-score-box">
+                      <span className="game-score-current">{total}</span>
+                      <span className="game-score-divider">/</span>
+                      <span className="game-score-target">{TARGET_SCORE}</span>
+                    </div>
+                  </div>
+                  <div className="game-progress-track">
+                    <div className="game-progress-fill" style={{ width: `${progressPercent}%` }} />
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        </section>
+      ) : null}
+
       <section className="panel">
         <h2>在线用户 ({room.users.length})</h2>
         {error ? <div className="error">{error}</div> : null}
@@ -180,4 +218,15 @@ export default function RoomPage() {
       </section>
     </main>
   )
+}
+
+function buildEmojiStats(userIndex: number): Array<{ emoji: string; value: number }> {
+  const base = userIndex % TARGET_SCORE
+  const values = [
+    Math.min(base + 1, 3),
+    Math.min(Math.max(base - 1, 0), 2),
+    Math.min(Math.max(base - 3, 0), 2),
+  ]
+
+  return GAME_EMOJIS.map((emoji, index) => ({ emoji, value: values[index] ?? 0 }))
 }

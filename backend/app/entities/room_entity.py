@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
 
+from app.entities.game_entity import GameEntity
+
 
 @dataclass
 class RoomEntity:
@@ -9,3 +11,4 @@ class RoomEntity:
     created_at: int
     status: str = "preparing"
     users: list[str] = field(default_factory=list)
+    game: GameEntity | None = None

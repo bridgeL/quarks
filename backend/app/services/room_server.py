@@ -1,8 +1,11 @@
-import json
 import secrets
+import string
 import time
 
 from loguru import logger
+
+from app.entities.game_entity import GameEntity
+from app.entities.player_entity import PlayerEntity
 from app.entities.room_entity import RoomEntity
 from app.services.ws_service import ws_manager
 from app.utils.id_generator import generate_id
@@ -33,15 +36,36 @@ class RoomServer:
         self._rooms: dict[str, RoomEntity] = {}
         self._user_rooms: dict[str, str] = {}
 
+    def _current_timestamp_ms(self) -> int:
+        return int(time.time() * 1000)
+
+    def _build_game_for_room(self, room: RoomEntity) -> GameEntity:
+        now = self._current_timestamp_ms()
+        players = [
+            PlayerEntity(
+                player_id=generate_id(8),
+                user_id=user_id,
+                created_at=now,
+            )
+            for user_id in room.users
+        ]
+        return GameEntity(
+            game_id=generate_id(8),
+            room_id=room.room_id,
+            started_at=now,
+            players=players,
+        )
+
     def create_room(self, room_id: str, created_by: str, name: str | None = None) -> RoomEntity:
         room_name = name.strip() if name and name.strip() else _generate_room_name()
         room = RoomEntity(
             room_id=room_id,
             name=room_name,
             created_by=created_by,
-            created_at=int(time.time() * 1000),
+            created_at=self._current_timestamp_ms(),
             status="preparing",
             users=[],
+            game=None,
         )
         self._rooms[room_id] = room
         return room
@@ -67,7 +91,12 @@ class RoomServer:
             room = self._rooms.get(room_id)
             if room and user_id in room.users:
                 room.users.remove(user_id)
-            if not room.users:
+            if room and room.status == "playing" and room.game:
+                for player in room.game.players:
+                    if player.user_id == user_id and player.left_at is None:
+                        player.left_at = self._current_timestamp_ms()
+                        break
+            if room and not room.users:
                 self._rooms.pop(room_id, None)
         return room_id
 
@@ -96,6 +125,7 @@ class RoomServer:
             return False, "Player count must be between 2 and 5"
         if room.status == "playing":
             return False, "Game already started"
+        room.game = self._build_game_for_room(room)
         room.status = "playing"
         return True, ""
 
@@ -105,6 +135,7 @@ class RoomServer:
             return False, "Room not found"
         if room.status == "preparing":
             return False, "Game not started"
+        room.game = None
         room.status = "preparing"
         return True, ""
 
