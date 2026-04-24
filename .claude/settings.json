@@ -4,7 +4,9 @@
       "Bash(git add *)",
       "Bash(git rm *)",
       "Bash(python -m py_compile *)",
-      "Bash(npx tsc *)"
+      "Bash(python -m compileall *)",
+      "Bash(npx tsc *)",
+      "Bash(npm --prefix frontend run build)"
     ]
   }
 }
