@@ -534,6 +534,19 @@ h2 {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #7c8cff 0%, #60a5fa 100%);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  min-width: 0;
+}
+
+.game-progress-fill-text {
+  font-size: 10px;
+  color: white;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .empty,
